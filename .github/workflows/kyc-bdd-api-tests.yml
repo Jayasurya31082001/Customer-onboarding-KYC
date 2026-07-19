@@ -27,159 +27,107 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # ───────────────────────────────────────────────────────────────────────────
-  # Job: build-services
-  # Builds all six Spring Boot microservices in parallel with Maven
-  # ───────────────────────────────────────────────────────────────────────────
-  build-services:
-    name: Build Microservices
+  # ─────────────────────────────────────────────────────────────────────────────
+  # Single job: build all services in-place, start them, then run the BDD suite.
+  # Merging into one job eliminates the cross-job JAR-caching problem entirely.
+  # ─────────────────────────────────────────────────────────────────────────────
+  build-and-test:
+    name: Build Services & Run BDD API Tests
     runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout source code
-        uses: actions/checkout@v4.2.2
-
-      - name: Set up Java 17 (Temurin)
-        uses: actions/setup-java@v4.7.0
-        with:
-          java-version: '17'
-          distribution: 'temurin'
-          cache: 'maven'
-
-      # Build each service. We use -DskipTests because unit tests are the
-      # responsibility of each individual service's own CI job.
-      - name: Build customer-service
-        run: |
-          mvn -f "customer-onboarding KYC/customer-onboarding-KYC-backend/customer-service/pom.xml" \
-              clean package -DskipTests -q
-
-      - name: Build document-service
-        run: |
-          mvn -f "customer-onboarding KYC/customer-onboarding-KYC-backend/document-service/pom.xml" \
-              clean package -DskipTests -q
-
-      - name: Build kyc-service
-        run: |
-          mvn -f "customer-onboarding KYC/customer-onboarding-KYC-backend/kyc-service/pom.xml" \
-              clean package -DskipTests -q
-
-      - name: Build risk-service
-        run: |
-          mvn -f "customer-onboarding KYC/customer-onboarding-KYC-backend/risk-service/pom.xml" \
-              clean package -DskipTests -q
-
-      - name: Build account-service
-        run: |
-          mvn -f "customer-onboarding KYC/customer-onboarding-KYC-backend/account-service/pom.xml" \
-              clean package -DskipTests -q
-
-      - name: Build notification-service
-        run: |
-          mvn -f "customer-onboarding KYC/customer-onboarding-KYC-backend/notification-service/pom.xml" \
-              clean package -DskipTests -q
-
-      # Cache the built JARs for the test job
-      - name: Cache built JARs
-        uses: actions/cache@v4.2.3
-        with:
-          path: |
-            customer-onboarding KYC/customer-onboarding-KYC-backend/*/target/*.jar
-          key: kyc-service-jars-${{ github.sha }}
-
-  # ───────────────────────────────────────────────────────────────────────────
-  # Job: run-bdd-tests
-  # Starts all six services, then runs the Cucumber + RestAssured suite
-  # ───────────────────────────────────────────────────────────────────────────
-  run-bdd-tests:
-    name: Run Cucumber BDD API Tests
-    runs-on: ubuntu-latest
-    needs: build-services
-
-    # ── Service port environment variables ──────────────────────────────────
     env:
-      API_HOST:               http://localhost
-      CUSTOMER_SERVICE_PORT:  8081
-      DOCUMENT_SERVICE_PORT:  8082
-      KYC_SERVICE_PORT:       8083
-      RISK_SERVICE_PORT:      8084
-      ACCOUNT_SERVICE_PORT:   8085
+      API_HOST:                  http://localhost
+      CUSTOMER_SERVICE_PORT:     8081
+      DOCUMENT_SERVICE_PORT:     8082
+      KYC_SERVICE_PORT:          8083
+      RISK_SERVICE_PORT:         8084
+      ACCOUNT_SERVICE_PORT:      8085
       NOTIFICATION_SERVICE_PORT: 8086
 
     steps:
+      # ── 1. Checkout ──────────────────────────────────────────────────────────
       - name: Checkout source code
         uses: actions/checkout@v4.2.2
 
+      # ── 2. Java toolchain ────────────────────────────────────────────────────
       - name: Set up Java 17 (Temurin)
         uses: actions/setup-java@v4.7.0
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: 'maven'
+          cache: 'maven'           # caches ~/.m2 so deps aren't re-downloaded
 
-      # Restore the JARs built in the previous job
-      - name: Restore cached JARs
-        uses: actions/cache@v4.2.3
-        with:
-          path: |
-            customer-onboarding KYC/customer-onboarding-KYC-backend/*/target/*.jar
-          key: kyc-service-jars-${{ github.sha }}
-
-      # ── Start each microservice in the background ────────────────────────
-      - name: Start customer-service (port 8081)
+      # ── 3. Build all six microservices ───────────────────────────────────────
+      - name: Build all microservices
         run: |
-          JAR=$(ls "customer-onboarding KYC/customer-onboarding-KYC-backend/customer-service/target/"*SNAPSHOT.jar | head -1)
-          java -jar "$JAR" --server.port=8081 &
-          echo "CUSTOMER_PID=$!" >> $GITHUB_ENV
+          set -e
+          BASE="customer-onboarding KYC/customer-onboarding-KYC-backend"
+          for svc in customer-service document-service kyc-service \
+                     risk-service account-service notification-service; do
+            echo "━━━ Building $svc ━━━"
+            mvn -f "${BASE}/${svc}/pom.xml" \
+                clean package -DskipTests -q --no-transfer-progress
+            echo "✔ $svc built"
+          done
 
-      - name: Start document-service (port 8082)
+      # ── 4. Start all six services in the background ──────────────────────────
+      - name: Start all microservices
         run: |
-          JAR=$(ls "customer-onboarding KYC/customer-onboarding-KYC-backend/document-service/target/"*SNAPSHOT.jar | head -1)
-          java -jar "$JAR" --server.port=8082 &
-          echo "DOCUMENT_PID=$!" >> $GITHUB_ENV
+          set -e
+          BASE="customer-onboarding KYC/customer-onboarding-KYC-backend"
+          PID_FILE=/tmp/service_pids.txt
+          > "$PID_FILE"   # create/empty the PID file
 
-      - name: Start kyc-service (port 8083)
-        run: |
-          JAR=$(ls "customer-onboarding KYC/customer-onboarding-KYC-backend/kyc-service/target/"*SNAPSHOT.jar | head -1)
-          java -jar "$JAR" --server.port=8083 &
-          echo "KYC_PID=$!" >> $GITHUB_ENV
+          start_service() {
+            local svc=$1
+            local port=$2
+            local jar
+            jar=$(ls "${BASE}/${svc}/target/"*SNAPSHOT.jar 2>/dev/null | head -1)
+            if [ -z "$jar" ]; then
+              echo "ERROR: No JAR found for ${svc} in ${BASE}/${svc}/target/"
+              exit 1
+            fi
+            java -jar "$jar" \
+                 --server.port="$port" \
+                 --spring.main.banner-mode=off \
+                 > "/tmp/${svc}.log" 2>&1 &
+            local pid=$!
+            echo "$pid" >> "$PID_FILE"
+            echo "▶  Started ${svc} (PID ${pid}) on port ${port}"
+          }
 
-      - name: Start risk-service (port 8084)
-        run: |
-          JAR=$(ls "customer-onboarding KYC/customer-onboarding-KYC-backend/risk-service/target/"*SNAPSHOT.jar | head -1)
-          java -jar "$JAR" --server.port=8084 &
-          echo "RISK_PID=$!" >> $GITHUB_ENV
+          start_service "customer-service"     8081
+          start_service "document-service"     8082
+          start_service "kyc-service"          8083
+          start_service "risk-service"         8084
+          start_service "account-service"      8085
+          start_service "notification-service" 8086
 
-      - name: Start account-service (port 8085)
-        run: |
-          JAR=$(ls "customer-onboarding KYC/customer-onboarding-KYC-backend/account-service/target/"*SNAPSHOT.jar | head -1)
-          java -jar "$JAR" --server.port=8085 &
-          echo "ACCOUNT_PID=$!" >> $GITHUB_ENV
-
-      - name: Start notification-service (port 8086)
-        run: |
-          JAR=$(ls "customer-onboarding KYC/customer-onboarding-KYC-backend/notification-service/target/"*SNAPSHOT.jar | head -1)
-          java -jar "$JAR" --server.port=8086 &
-          echo "NOTIFICATION_PID=$!" >> $GITHUB_ENV
-
-      # ── Wait for all services to become healthy ──────────────────────────
+      # ── 5. Wait until every service accepts connections ──────────────────────
       - name: Wait for all microservices to be ready
         run: |
           wait_for_port() {
             local port=$1
             local name=$2
-            local retries=30
-            echo "Waiting for $name on port $port..."
-            until curl -sf "http://localhost:$port/actuator/health" > /dev/null 2>&1 || \
-                  curl -sf "http://localhost:$port/api-docs" > /dev/null 2>&1; do
-              retries=$((retries - 1))
-              if [ $retries -le 0 ]; then
-                echo "ERROR: $name did not start on port $port in time."
+            local max_wait=90      # seconds
+            local waited=0
+
+            echo "Waiting for ${name} on port ${port}..."
+            # curl without -f returns 0 on any HTTP response (even 404/400).
+            # It only returns non-zero on a connection-refused / DNS failure.
+            until curl -s "http://localhost:${port}/" > /dev/null 2>&1; do
+              if [ "$waited" -ge "$max_wait" ]; then
+                echo "ERROR: ${name} did not start within ${max_wait}s"
+                echo "--- last 30 lines of ${name}.log ---"
+                tail -30 "/tmp/${name}.log" 2>/dev/null || true
                 exit 1
               fi
-              sleep 2
+              sleep 3
+              waited=$((waited + 3))
             done
-            echo "$name is ready on port $port"
+            echo "✔  ${name} ready (port ${port}, waited ${waited}s)"
           }
+
           wait_for_port 8081 "customer-service"
           wait_for_port 8082 "document-service"
           wait_for_port 8083 "kyc-service"
@@ -187,7 +135,7 @@ jobs:
           wait_for_port 8085 "account-service"
           wait_for_port 8086 "notification-service"
 
-      # ── Run the Cucumber BDD test suite ──────────────────────────────────
+      # ── 6. Run the Cucumber BDD test suite ───────────────────────────────────
       - name: Run Cucumber BDD API Tests
         working-directory: "customer-onboarding KYC/customer-onboarding-KYC-TestAutomation"
         run: |
@@ -196,7 +144,7 @@ jobs:
             --batch-mode \
             --no-transfer-progress
 
-      # ── Publish test results – always run so failures are visible ─────────
+      # ── 7. Publish JUnit XML to the GitHub Actions summary ───────────────────
       - name: Publish JUnit test results
         uses: mikepenz/action-junit-report@v5
         if: always()
@@ -204,10 +152,10 @@ jobs:
           report_paths: >-
             customer-onboarding KYC/customer-onboarding-KYC-TestAutomation/target/cucumber-reports/cucumber.xml
           fail_on_failure: true
-          require_tests: true
+          require_tests: false     # don't error if no XML yet (e.g. compile failure)
           summary: true
 
-      # ── Upload Cucumber HTML report and JSON as build artifacts ───────────
+      # ── 8. Upload Cucumber HTML + JSON reports as build artifacts ─────────────
       - name: Upload Cucumber test reports
         uses: actions/upload-artifact@v4.6.2
         if: always()
@@ -218,6 +166,7 @@ jobs:
           retention-days: 30
           if-no-files-found: warn
 
+      # ── 9. Upload test log on failure ─────────────────────────────────────────
       - name: Upload test automation log
         uses: actions/upload-artifact@v4.6.2
         if: failure()
@@ -226,15 +175,28 @@ jobs:
           path: |
             customer-onboarding KYC/customer-onboarding-KYC-TestAutomation/target/cucumber-reports/test-automation.log
           retention-days: 14
+          if-no-files-found: warn
 
-      # ── Stop all background services (cleanup) ───────────────────────────
+      # ── 10. Upload service startup logs on failure (helps debug start issues) ──
+      - name: Upload service startup logs
+        uses: actions/upload-artifact@v4.6.2
+        if: failure()
+        with:
+          name: service-startup-logs-${{ github.run_number }}
+          path: /tmp/*.log
+          retention-days: 7
+          if-no-files-found: warn
+
+      # ── 11. Stop all background services (cleanup) ────────────────────────────
       - name: Stop microservices
         if: always()
         run: |
-          for pid_var in CUSTOMER_PID DOCUMENT_PID KYC_PID RISK_PID ACCOUNT_PID NOTIFICATION_PID; do
-            PID="${!pid_var}"
-            if [ -n "$PID" ]; then
-              kill "$PID" 2>/dev/null || true
-              echo "Stopped service with PID $PID"
-            fi
-          done
+          PID_FILE=/tmp/service_pids.txt
+          if [ -f "$PID_FILE" ]; then
+            while IFS= read -r pid; do
+              if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+                kill "$pid" 2>/dev/null || true
+                echo "Stopped PID $pid"
+              fi
+            done < "$PID_FILE"
+          fi
