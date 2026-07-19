@@ -29,7 +29,6 @@ concurrency:
 jobs:
   # ─────────────────────────────────────────────────────────────────────────────
   # Single job: build all services in-place, start them, then run the BDD suite.
-  # Merging into one job eliminates the cross-job JAR-caching problem entirely.
   # ─────────────────────────────────────────────────────────────────────────────
   build-and-test:
     name: Build Services & Run BDD API Tests
@@ -55,7 +54,7 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: 'maven'           # caches ~/.m2 so deps aren't re-downloaded
+          cache: 'maven'
 
       # ── 3. Build all six microservices ───────────────────────────────────────
       - name: Build all microservices
@@ -76,7 +75,7 @@ jobs:
           set -e
           BASE="customer-onboarding KYC/customer-onboarding-KYC-backend"
           PID_FILE=/tmp/service_pids.txt
-          > "$PID_FILE"   # create/empty the PID file
+          > "$PID_FILE"
 
           start_service() {
             local svc=$1
@@ -103,23 +102,23 @@ jobs:
           start_service "account-service"      8085
           start_service "notification-service" 8086
 
-      # ── 5. Wait until every service accepts connections ──────────────────────
+      # ── 5. Wait until every Spring Boot application context is 100% ready ────
       - name: Wait for all microservices to be ready
         run: |
           wait_for_port() {
             local port=$1
             local name=$2
-            local max_wait=90      # seconds
+            local max_wait=120     # seconds
             local waited=0
 
             echo "Waiting for ${name} on port ${port}..."
-            # curl without -f returns 0 on any HTTP response (even 404/400).
-            # It only returns non-zero on a connection-refused / DNS failure.
-            until curl -s "http://localhost:${port}/" > /dev/null 2>&1; do
+            until curl -sf "http://localhost:${port}/swagger-ui.html" > /dev/null 2>&1 || \
+                  curl -sf "http://localhost:${port}/api-docs" > /dev/null 2>&1 || \
+                  curl -sf "http://localhost:${port}/v3/api-docs" > /dev/null 2>&1; do
               if [ "$waited" -ge "$max_wait" ]; then
                 echo "ERROR: ${name} did not start within ${max_wait}s"
-                echo "--- last 30 lines of ${name}.log ---"
-                tail -30 "/tmp/${name}.log" 2>/dev/null || true
+                echo "--- last 40 lines of ${name}.log ---"
+                tail -40 "/tmp/${name}.log" 2>/dev/null || true
                 exit 1
               fi
               sleep 3
@@ -152,7 +151,7 @@ jobs:
           report_paths: >-
             customer-onboarding KYC/customer-onboarding-KYC-TestAutomation/target/cucumber-reports/cucumber.xml
           fail_on_failure: true
-          require_tests: false     # don't error if no XML yet (e.g. compile failure)
+          require_tests: false
           summary: true
 
       # ── 8. Upload Cucumber HTML + JSON reports as build artifacts ─────────────
@@ -177,7 +176,7 @@ jobs:
           retention-days: 14
           if-no-files-found: warn
 
-      # ── 10. Upload service startup logs on failure (helps debug start issues) ──
+      # ── 10. Upload service startup logs on failure ─────────────────────────────
       - name: Upload service startup logs
         uses: actions/upload-artifact@v4.6.2
         if: failure()
