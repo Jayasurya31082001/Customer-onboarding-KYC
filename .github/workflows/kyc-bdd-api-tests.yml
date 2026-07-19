@@ -5,13 +5,13 @@ name: KYC BDD API Test Suite
 # ─────────────────────────────────────────────────────────────────────────────
 on:
   push:
-    branches: [ "main", "develop", "feature/**", "release/**" ]
+    branches: [ "master", "main", "develop", "feature/**", "release/**" ]
     paths:
       - "customer-onboarding KYC/customer-onboarding-KYC-TestAutomation/**"
       - "customer-onboarding KYC/customer-onboarding-KYC-backend/**"
       - ".github/workflows/kyc-bdd-api-tests.yml"
   pull_request:
-    branches: [ "main", "develop" ]
+    branches: [ "master", "main", "develop" ]
     paths:
       - "customer-onboarding KYC/customer-onboarding-KYC-TestAutomation/**"
       - "customer-onboarding KYC/customer-onboarding-KYC-backend/**"
