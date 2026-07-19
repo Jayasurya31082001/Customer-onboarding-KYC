@@ -13,16 +13,6 @@ import static io.restassured.RestAssured.given;
 
 /**
  * API client for the Document Service (port 8082).
- *
- * <p>Covers:
- * <ul>
- *   <li>POST /api/documents                         – multipart file upload</li>
- *   <li>GET  /api/documents/{documentId}            – download raw document bytes</li>
- *   <li>GET  /api/documents/metadata/{documentId}   – document metadata</li>
- *   <li>GET  /api/documents/customer/{id}/latest    – latest document metadata by customer</li>
- * </ul>
- *
- * <p>File upload is performed via multipart/form-data (no browser required).
  */
 public class DocumentUploadApiClient {
 
@@ -32,15 +22,6 @@ public class DocumentUploadApiClient {
         this.spec = BaseApiConfig.documentServiceSpec();
     }
 
-    // ─── Upload ───────────────────────────────────────────────────────────────
-
-    /**
-     * Uploads a real {@link File} on behalf of the given customer.
-     *
-     * @param customerId UUID string of the customer who owns the document
-     * @param file       the file to upload
-     * @param mimeType   MIME type to send as the part's content type (e.g. "application/pdf")
-     */
     public Response uploadDocument(String customerId, File file, String mimeType) {
         return given()
                 .spec(spec)
@@ -50,14 +31,6 @@ public class DocumentUploadApiClient {
                 .post("/api/documents");
     }
 
-    /**
-     * Convenience overload: creates an in-memory temp file from raw bytes and uploads it.
-     *
-     * @param customerId UUID string
-     * @param content    raw bytes to write into the temp file
-     * @param fileName   name to give the temp file (extension determines MIME hint)
-     * @param mimeType   MIME type header for the multipart part
-     */
     public Response uploadDocumentBytes(String customerId,
                                         byte[] content,
                                         String fileName,
@@ -70,11 +43,6 @@ public class DocumentUploadApiClient {
         }
     }
 
-    // ─── Retrieval ────────────────────────────────────────────────────────────
-
-    /**
-     * Downloads the raw bytes of a document.
-     */
     public Response downloadDocument(String documentId) {
         return given()
                 .spec(spec)
@@ -82,9 +50,6 @@ public class DocumentUploadApiClient {
                 .get("/api/documents/{documentId}", documentId);
     }
 
-    /**
-     * Fetches document metadata (filename, contentType, size) without downloading content.
-     */
     public Response getDocumentMetadata(String documentId) {
         return given()
                 .spec(spec)
@@ -93,9 +58,6 @@ public class DocumentUploadApiClient {
                 .get("/api/documents/metadata/{documentId}", documentId);
     }
 
-    /**
-     * Returns metadata for the latest document uploaded by a customer.
-     */
     public Response getLatestDocumentMetadataByCustomer(String customerId) {
         return given()
                 .spec(spec)
@@ -106,21 +68,29 @@ public class DocumentUploadApiClient {
 
     // ─── Helpers ──────────────────────────────────────────────────────────────
 
-    /** Creates a minimal valid PDF byte array (just enough for upload acceptance). */
+    /** %PDF-1.4 magic bytes */
     public static byte[] minimalPdfContent() {
-        return "%PDF-1.4 minimal test document".getBytes(StandardCharsets.UTF_8);
+        return new byte[]{ 0x25, 0x50, 0x44, 0x46, 0x2D, 0x31, 0x2E, 0x34, 0x0A };
     }
 
-    /** Creates a minimal PNG byte array (PNG magic bytes). */
+    /** JPEG magic bytes (FF D8 FF) */
+    public static byte[] minimalJpegContent() {
+        return new byte[]{(byte)0xFF, (byte)0xD8, (byte)0xFF, (byte)0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00};
+    }
+
+    /** PNG magic bytes (89 50 4E 47 0D 0A 1A 0A) */
     public static byte[] minimalPngContent() {
-        // PNG magic bytes: 8 bytes header
-        return new byte[]{(byte)0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00};
+        return new byte[]{(byte)0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A};
     }
 
-    /** Generates a byte array larger than 5 MB to trigger the file size limit. */
+    /** Generates a byte array larger than 5 MB (starts with PDF magic bytes so magic check passes, but size check fails). */
     public static byte[] oversizedContent() {
-        // 5 MB + 1 byte
-        return new byte[5 * 1024 * 1024 + 1];
+        byte[] bytes = new byte[5 * 1024 * 1024 + 1];
+        bytes[0] = 0x25; // %
+        bytes[1] = 0x50; // P
+        bytes[2] = 0x44; // D
+        bytes[3] = 0x46; // F
+        return bytes;
     }
 
     private static File createTempFile(byte[] content, String fileName) {

@@ -28,16 +28,16 @@ Feature: Customer Registration API
       | city        | <city>        |
       | postcode    | <postcode>    |
     Then the registration response status code is <expectedStatus>
-    And the registration response body contains <expectedField> equal to "<expectedValue>"
+    And the registration response body contains "<expectedField>" equal to "<expectedValue>"
 
     Examples:
-      | firstName | lastName | email                        | dateOfBirth | phoneNumber    | nationality | addressLine1        | city   | postcode | expectedStatus | expectedField | expectedValue    |
-      | Alice     | Walker   | alice.walker.reg@example.com | 1990-06-15  | +447911123456  | GB          | 221B Baker Street   | London | NW1 6XE  | 201            | onboardingStatus | PENDING_DOCUMENT |
-      | B         | Walker   | bad.firstname@example.com    | 1990-06-15  | +447911123456  | GB          | 221B Baker Street   | London | NW1 6XE  | 400            | errors[0]     | firstName        |
-      | Alice     | Walker   | not-an-email                 | 1990-06-15  | +447911123456  | GB          | 221B Baker Street   | London | NW1 6XE  | 400            | errors[0]     | email            |
-      | Alice     | Walker   | underage@example.com         | 2015-01-01  | +447911123456  | GB          | 221B Baker Street   | London | NW1 6XE  | 400            | errors[0]     | dateOfBirth      |
-      | Alice     | Walker   | bad.phone@example.com        | 1990-06-15  | 07911123456    | GB          | 221B Baker Street   | London | NW1 6XE  | 400            | errors[0]     | phoneNumber      |
-      | Alice     | Walker   | bad.postcode@example.com     | 1990-06-15  | +447911123456  | GB          | 221B Baker Street   | London | ZZ99     | 400            | errors[0]     | postcode         |
+      | firstName | lastName | email                        | dateOfBirth | phoneNumber    | nationality | addressLine1        | city   | postcode | expectedStatus | expectedField | expectedValue |
+      | Alice     | Walker   | alice.walker.reg@example.com | 1990-06-15  | +447911123456  | GB          | 221B Baker Street   | London | NW1 6XE  | 201            | status        | PENDING       |
+      | B         | Walker   | bad.firstname@example.com    | 1990-06-15  | +447911123456  | GB          | 221B Baker Street   | London | NW1 6XE  | 400            | errors[0]     | firstName     |
+      | Alice     | Walker   | not-an-email                 | 1990-06-15  | +447911123456  | GB          | 221B Baker Street   | London | NW1 6XE  | 400            | errors[0]     | email         |
+      | Alice     | Walker   | underage@example.com         | 2015-01-01  | +447911123456  | GB          | 221B Baker Street   | London | NW1 6XE  | 400            | errors[0]     | dateOfBirth   |
+      | Alice     | Walker   | bad.phone@example.com        | 1990-06-15  | 07911123456    | GB          | 221B Baker Street   | London | NW1 6XE  | 400            | errors[0]     | phoneNumber   |
+      | Alice     | Walker   | bad.postcode@example.com     | 1990-06-15  | +447911123456  | GB          | 221B Baker Street   | London | ZZ99     | 400            | errors[0]     | postcode      |
 
   @QTEST-1002
   Scenario: Registering an already-registered e-mail returns 409 Conflict
@@ -52,4 +52,4 @@ Feature: Customer Registration API
     When the customer is fetched by their generated customer ID
     Then the fetch response status code is 200
     And the fetched customer email is "retrieve.me@example.com"
-    And the fetched customer onboarding status is "PENDING_DOCUMENT"
+    And the fetched customer onboarding status is "PENDING"
