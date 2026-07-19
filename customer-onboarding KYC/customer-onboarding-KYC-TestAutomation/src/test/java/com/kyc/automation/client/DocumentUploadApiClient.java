@@ -1,0 +1,139 @@
+package com.kyc.automation.client;
+
+import com.kyc.automation.config.BaseApiConfig;
+import io.restassured.response.Response;
+import io.restassured.specification.RequestSpecification;
+
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+
+import static io.restassured.RestAssured.given;
+
+/**
+ * API client for the Document Service (port 8082).
+ *
+ * <p>Covers:
+ * <ul>
+ *   <li>POST /api/documents                         – multipart file upload</li>
+ *   <li>GET  /api/documents/{documentId}            – download raw document bytes</li>
+ *   <li>GET  /api/documents/metadata/{documentId}   – document metadata</li>
+ *   <li>GET  /api/documents/customer/{id}/latest    – latest document metadata by customer</li>
+ * </ul>
+ *
+ * <p>File upload is performed via multipart/form-data (no browser required).
+ */
+public class DocumentUploadApiClient {
+
+    private final RequestSpecification spec;
+
+    public DocumentUploadApiClient() {
+        this.spec = BaseApiConfig.documentServiceSpec();
+    }
+
+    // ─── Upload ───────────────────────────────────────────────────────────────
+
+    /**
+     * Uploads a real {@link File} on behalf of the given customer.
+     *
+     * @param customerId UUID string of the customer who owns the document
+     * @param file       the file to upload
+     * @param mimeType   MIME type to send as the part's content type (e.g. "application/pdf")
+     */
+    public Response uploadDocument(String customerId, File file, String mimeType) {
+        return given()
+                .spec(spec)
+                .queryParam("customerId", customerId)
+                .multiPart("file", file, mimeType)
+                .when()
+                .post("/api/documents");
+    }
+
+    /**
+     * Convenience overload: creates an in-memory temp file from raw bytes and uploads it.
+     *
+     * @param customerId UUID string
+     * @param content    raw bytes to write into the temp file
+     * @param fileName   name to give the temp file (extension determines MIME hint)
+     * @param mimeType   MIME type header for the multipart part
+     */
+    public Response uploadDocumentBytes(String customerId,
+                                        byte[] content,
+                                        String fileName,
+                                        String mimeType) {
+        File tmp = createTempFile(content, fileName);
+        try {
+            return uploadDocument(customerId, tmp, mimeType);
+        } finally {
+            tmp.delete();
+        }
+    }
+
+    // ─── Retrieval ────────────────────────────────────────────────────────────
+
+    /**
+     * Downloads the raw bytes of a document.
+     */
+    public Response downloadDocument(String documentId) {
+        return given()
+                .spec(spec)
+                .when()
+                .get("/api/documents/{documentId}", documentId);
+    }
+
+    /**
+     * Fetches document metadata (filename, contentType, size) without downloading content.
+     */
+    public Response getDocumentMetadata(String documentId) {
+        return given()
+                .spec(spec)
+                .accept("application/json")
+                .when()
+                .get("/api/documents/metadata/{documentId}", documentId);
+    }
+
+    /**
+     * Returns metadata for the latest document uploaded by a customer.
+     */
+    public Response getLatestDocumentMetadataByCustomer(String customerId) {
+        return given()
+                .spec(spec)
+                .accept("application/json")
+                .when()
+                .get("/api/documents/customer/{customerId}/latest", customerId);
+    }
+
+    // ─── Helpers ──────────────────────────────────────────────────────────────
+
+    /** Creates a minimal valid PDF byte array (just enough for upload acceptance). */
+    public static byte[] minimalPdfContent() {
+        return "%PDF-1.4 minimal test document".getBytes(StandardCharsets.UTF_8);
+    }
+
+    /** Creates a minimal PNG byte array (PNG magic bytes). */
+    public static byte[] minimalPngContent() {
+        // PNG magic bytes: 8 bytes header
+        return new byte[]{(byte)0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00};
+    }
+
+    /** Generates a byte array larger than 5 MB to trigger the file size limit. */
+    public static byte[] oversizedContent() {
+        // 5 MB + 1 byte
+        return new byte[5 * 1024 * 1024 + 1];
+    }
+
+    private static File createTempFile(byte[] content, String fileName) {
+        try {
+            String suffix = fileName.contains(".") ? fileName.substring(fileName.lastIndexOf('.')) : ".tmp";
+            File tmp = File.createTempFile("kyc-test-", suffix);
+            try (FileOutputStream fos = new FileOutputStream(tmp)) {
+                fos.write(content);
+            }
+            tmp.deleteOnExit();
+            return tmp;
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to create temp file for document upload", e);
+        }
+    }
+}
