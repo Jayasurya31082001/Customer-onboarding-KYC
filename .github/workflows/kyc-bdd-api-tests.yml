@@ -37,10 +37,10 @@ jobs:
 
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
 
       - name: Set up Java 17 (Temurin)
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v4.7.0
         with:
           java-version: '17'
           distribution: 'temurin'
@@ -80,7 +80,7 @@ jobs:
 
       # Cache the built JARs for the test job
       - name: Cache built JARs
-        uses: actions/cache@v4
+        uses: actions/cache@v4.2.3
         with:
           path: |
             customer-onboarding KYC/customer-onboarding-KYC-backend/*/target/*.jar
@@ -107,10 +107,10 @@ jobs:
 
     steps:
       - name: Checkout source code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v4.2.2
 
       - name: Set up Java 17 (Temurin)
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v4.7.0
         with:
           java-version: '17'
           distribution: 'temurin'
@@ -118,7 +118,7 @@ jobs:
 
       # Restore the JARs built in the previous job
       - name: Restore cached JARs
-        uses: actions/cache@v4
+        uses: actions/cache@v4.2.3
         with:
           path: |
             customer-onboarding KYC/customer-onboarding-KYC-backend/*/target/*.jar
@@ -198,7 +198,7 @@ jobs:
 
       # ── Publish test results – always run so failures are visible ─────────
       - name: Publish JUnit test results
-        uses: mikepenz/action-junit-report@v4
+        uses: mikepenz/action-junit-report@v5
         if: always()
         with:
           report_paths: >-
@@ -209,7 +209,7 @@ jobs:
 
       # ── Upload Cucumber HTML report and JSON as build artifacts ───────────
       - name: Upload Cucumber test reports
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.2
         if: always()
         with:
           name: cucumber-bdd-reports-${{ github.run_number }}
@@ -219,7 +219,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Upload test automation log
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.6.2
         if: failure()
         with:
           name: test-automation-log-${{ github.run_number }}
