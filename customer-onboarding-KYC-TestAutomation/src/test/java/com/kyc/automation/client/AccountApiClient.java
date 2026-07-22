@@ -1,10 +1,12 @@
 package com.kyc.automation.client;
 
 import com.kyc.automation.config.BaseApiConfig;
+import com.kyc.automation.util.ApiClientUtil;
+import com.kyc.automation.util.ValidationUtil;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 
-import static io.restassured.RestAssured.given;
+import java.util.Map;
 
 /**
  * API client for the Account Service (port 8085).
@@ -49,16 +51,16 @@ public class AccountApiClient {
                                           String customerEmail,
                                           String disposition,
                                           int score) {
-        return given()
-                .spec(spec)
-                .body(java.util.Map.of(
-                        "customerId",    customerId,
-                        "customerEmail", customerEmail,
-                        "disposition",   disposition,
-                        "score",         score
-                ))
-                .when()
-                .post("/api/internal/events/risk-assessed");
+        ValidationUtil.requireNonEmpty(customerId, "customerId", "AccountApiClient.sendRiskAssessedEvent");
+        ValidationUtil.requireNonEmpty(customerEmail, "customerEmail", "AccountApiClient.sendRiskAssessedEvent");
+        ValidationUtil.requireNonEmpty(disposition, "disposition", "AccountApiClient.sendRiskAssessedEvent");
+
+        return ApiClientUtil.executePost(spec, "/api/internal/events/risk-assessed", Map.of(
+                "customerId",    customerId,
+                "customerEmail", customerEmail,
+                "disposition",   disposition,
+                "score",         score
+        ));
     }
 
     // ─── Account Query ────────────────────────────────────────────────────────
@@ -68,9 +70,8 @@ public class AccountApiClient {
      * Maps to: GET /api/v1/accounts/customer/{customerId}  → HTTP 200 OK with account details.
      */
     public Response getAccountByCustomerId(String customerId) {
-        return given()
-                .spec(spec)
-                .when()
-                .get("/api/v1/accounts/customer/{customerId}", customerId);
+        ValidationUtil.requireNonEmpty(customerId, "customerId", "AccountApiClient.getAccountByCustomerId");
+
+        return ApiClientUtil.executeGet(spec, "/api/v1/accounts/customer/{customerId}", customerId);
     }
 }

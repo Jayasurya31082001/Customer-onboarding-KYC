@@ -1,6 +1,8 @@
 package com.kyc.automation.client;
 
 import com.kyc.automation.config.BaseApiConfig;
+import com.kyc.automation.util.ApiClientUtil;
+import com.kyc.automation.util.ValidationUtil;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 
@@ -9,8 +11,6 @@ import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
-
-import static io.restassured.RestAssured.given;
 
 /**
  * API client for the Risk Service (port 8084).
@@ -59,6 +59,13 @@ public class RiskApiClient {
                                           boolean sanctionsMatch,
                                           String customerEmail,
                                           String correlationId) {
+        ValidationUtil.requireNonEmpty(customerId, "customerId", "RiskApiClient.sendKycCompletedEvent");
+        ValidationUtil.requireNonEmpty(kycCaseId, "kycCaseId", "RiskApiClient.sendKycCompletedEvent");
+        ValidationUtil.requireNonEmpty(documentId, "documentId", "RiskApiClient.sendKycCompletedEvent");
+        ValidationUtil.requireNonEmpty(kycStatus, "kycStatus", "RiskApiClient.sendKycCompletedEvent");
+        ValidationUtil.requireNonEmpty(nationality, "nationality", "RiskApiClient.sendKycCompletedEvent");
+        ValidationUtil.requireNonNull(dateOfBirth, "dateOfBirth", "RiskApiClient.sendKycCompletedEvent");
+        ValidationUtil.requireNonEmpty(customerEmail, "customerEmail", "RiskApiClient.sendKycCompletedEvent");
 
         Map<String, Object> body = new HashMap<>();
         body.put("customerId",     customerId);
@@ -66,18 +73,14 @@ public class RiskApiClient {
         body.put("documentId",     documentId);
         body.put("status",         kycStatus);
         body.put("occurredAt",     LocalDateTime.now().toString());
-        body.put("correlationId",  correlationId != null ? correlationId : UUID.randomUUID().toString());
+        body.put("correlationId",  ApiClientUtil.resolveCorrelationId(correlationId));
         body.put("nationality",    nationality);
-        body.put("dateOfBirth",    dateOfBirth != null ? dateOfBirth.toString() : null);
+        body.put("dateOfBirth",    dateOfBirth.toString());
         body.put("pepMatch",       pepMatch);
         body.put("sanctionsMatch", sanctionsMatch);
         body.put("customerEmail",  customerEmail);
 
-        return given()
-                .spec(spec)
-                .body(body)
-                .when()
-                .post("/api/internal/events/kyc-completed");
+        return ApiClientUtil.executePost(spec, "/api/internal/events/kyc-completed", body);
     }
 
     /**
@@ -88,6 +91,9 @@ public class RiskApiClient {
      * @param email      customer e-mail
      */
     public Response sendLowRiskKycCompleted(String customerId, String email) {
+        ValidationUtil.requireNonEmpty(customerId, "customerId", "RiskApiClient.sendLowRiskKycCompleted");
+        ValidationUtil.requireNonEmpty(email, "email", "RiskApiClient.sendLowRiskKycCompleted");
+
         return sendKycCompletedEvent(
                 customerId,
                 UUID.randomUUID().toString(),   // kycCaseId
@@ -111,6 +117,9 @@ public class RiskApiClient {
      * @param email      customer e-mail
      */
     public Response sendHighRiskKycCompleted(String customerId, String email) {
+        ValidationUtil.requireNonEmpty(customerId, "customerId", "RiskApiClient.sendHighRiskKycCompleted");
+        ValidationUtil.requireNonEmpty(email, "email", "RiskApiClient.sendHighRiskKycCompleted");
+
         return sendKycCompletedEvent(
                 customerId,
                 UUID.randomUUID().toString(),
@@ -133,6 +142,9 @@ public class RiskApiClient {
      * @param email      customer e-mail
      */
     public Response sendFailedKycCompleted(String customerId, String email) {
+        ValidationUtil.requireNonEmpty(customerId, "customerId", "RiskApiClient.sendFailedKycCompleted");
+        ValidationUtil.requireNonEmpty(email, "email", "RiskApiClient.sendFailedKycCompleted");
+
         return sendKycCompletedEvent(
                 customerId,
                 UUID.randomUUID().toString(),
@@ -154,9 +166,8 @@ public class RiskApiClient {
      * Maps to: GET /api/v1/risk-assessments/customer/{customerId}/latest
      */
     public Response getLatestRiskAssessment(String customerId) {
-        return given()
-                .spec(spec)
-                .when()
-                .get("/api/v1/risk-assessments/customer/{customerId}/latest", customerId);
+        ValidationUtil.requireNonEmpty(customerId, "customerId", "RiskApiClient.getLatestRiskAssessment");
+
+        return ApiClientUtil.executeGet(spec, "/api/v1/risk-assessments/customer/{customerId}/latest", customerId);
     }
 }

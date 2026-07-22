@@ -1,15 +1,14 @@
 package com.kyc.automation.client;
 
 import com.kyc.automation.config.BaseApiConfig;
+import com.kyc.automation.util.ApiClientUtil;
+import com.kyc.automation.util.ValidationUtil;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.UUID;
-
-import static io.restassured.RestAssured.given;
 
 /**
  * API client for the KYC Service (port 8083).
@@ -42,16 +41,14 @@ public class KycVerificationApiClient {
      * @return raw RestAssured response (expect HTTP 202 Accepted)
      */
     public Response sendCustomerRegisteredEvent(String customerId, String correlationId) {
+        ValidationUtil.requireNonEmpty(customerId, "customerId", "KycVerificationApiClient.sendCustomerRegisteredEvent");
+
         Map<String, Object> body = new HashMap<>();
         body.put("customerId",     customerId);
         body.put("occurredAt",     LocalDateTime.now().toString());
-        body.put("correlationId",  correlationId != null ? correlationId : UUID.randomUUID().toString());
+        body.put("correlationId",  ApiClientUtil.resolveCorrelationId(correlationId));
 
-        return given()
-                .spec(spec)
-                .body(body)
-                .when()
-                .post("/api/internal/events/customer-registered");
+        return ApiClientUtil.executePost(spec, "/api/internal/events/customer-registered", body);
     }
 
     /**
@@ -66,17 +63,16 @@ public class KycVerificationApiClient {
     public Response sendDocumentUploadedEvent(String customerId,
                                               String documentId,
                                               String correlationId) {
+        ValidationUtil.requireNonEmpty(customerId, "customerId", "KycVerificationApiClient.sendDocumentUploadedEvent");
+        ValidationUtil.requireNonEmpty(documentId, "documentId", "KycVerificationApiClient.sendDocumentUploadedEvent");
+
         Map<String, Object> body = new HashMap<>();
         body.put("customerId",    customerId);
         body.put("documentId",    documentId);
         body.put("occurredAt",    LocalDateTime.now().toString());
-        body.put("correlationId", correlationId != null ? correlationId : UUID.randomUUID().toString());
+        body.put("correlationId", ApiClientUtil.resolveCorrelationId(correlationId));
 
-        return given()
-                .spec(spec)
-                .body(body)
-                .when()
-                .post("/api/internal/events/document-uploaded");
+        return ApiClientUtil.executePost(spec, "/api/internal/events/document-uploaded", body);
     }
 
     /**
@@ -88,10 +84,6 @@ public class KycVerificationApiClient {
         Map<String, Object> body = new HashMap<>();
         body.put("correlationId", "bad-correlation");
 
-        return given()
-                .spec(spec)
-                .body(body)
-                .when()
-                .post("/api/internal/events/customer-registered");
+        return ApiClientUtil.executePost(spec, "/api/internal/events/customer-registered", body);
     }
 }

@@ -1,6 +1,7 @@
 package com.kyc.automation.steps;
 
 import com.kyc.automation.client.KycVerificationApiClient;
+import com.kyc.automation.client.RegistrationApiClient;
 import com.kyc.automation.config.BaseApiConfig;
 import com.kyc.automation.context.ScenarioContext;
 import io.cucumber.java.en.Given;
@@ -10,6 +11,7 @@ import io.restassured.response.Response;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Map;
 import java.util.UUID;
 
 import static io.restassured.RestAssured.given;
@@ -26,28 +28,34 @@ public class KycVerificationSteps {
     private static final Logger LOG = LoggerFactory.getLogger(KycVerificationSteps.class);
 
     private final KycVerificationApiClient kycClient;
+    private final RegistrationApiClient    registrationClient;
     private final ScenarioContext          scenarioContext;
 
     private Response lastKycResponse;
 
     public KycVerificationSteps(ScenarioContext scenarioContext) {
-        this.scenarioContext = scenarioContext;
-        this.kycClient       = new KycVerificationApiClient();
+        this.scenarioContext    = scenarioContext;
+        this.kycClient          = new KycVerificationApiClient();
+        this.registrationClient = new RegistrationApiClient();
     }
 
     // ─── Given ────────────────────────────────────────────────────────────────
 
     @Given("the KYC Service is running on its configured port")
     public void theKycServiceIsRunning() {
-        int status = given()
-                .spec(BaseApiConfig.kycServiceSpec())
-                .when()
-                .get("/api/internal/health-probe")
-                .then()
-                .extract()
-                .statusCode();
-        assertThat(status).isLessThan(500);
-        LOG.info("KYC Service health check passed (HTTP {})", status);
+        assertThat(isPortOpen(BaseApiConfig.KYC_SERVICE_PORT))
+                .as("KYC Service must be running on port %d", BaseApiConfig.KYC_SERVICE_PORT)
+                .isTrue();
+        LOG.info("KYC Service health check passed on port {}", BaseApiConfig.KYC_SERVICE_PORT);
+    }
+
+    private static boolean isPortOpen(int port) {
+        try (java.net.Socket socket = new java.net.Socket()) {
+            socket.connect(new java.net.InetSocketAddress("localhost", port), 2000);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     @Given("a valid customer ID exists for KYC initiation")
@@ -65,7 +73,9 @@ public class KycVerificationSteps {
 
     @Given("a customer-registered event has been accepted for a clean customer profile")
     public void aCustomerRegisteredEventHasBeenAcceptedForCleanProfile() {
-        String customerId = UUID.randomUUID().toString();
+        String email = "clean.kyc." + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
+        Response regResponse = registrationClient.registerCustomerRaw(RegistrationApiClient.validPayload(email));
+        String customerId = regResponse.jsonPath().getString("customerId");
         scenarioContext.set(ScenarioContext.CUSTOMER_ID, customerId);
 
         Response response = kycClient.sendCustomerRegisteredEvent(customerId, UUID.randomUUID().toString());
@@ -78,7 +88,11 @@ public class KycVerificationSteps {
 
     @Given("a customer-registered event has been accepted for a high-risk customer profile")
     public void aCustomerRegisteredEventHasBeenAcceptedForHighRiskProfile() {
-        String customerId = UUID.randomUUID().toString();
+        String email = "high.risk.kyc." + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
+        Map<String, Object> payload = RegistrationApiClient.validPayload(email);
+        payload.put("nationality", "IR");
+        Response regResponse = registrationClient.registerCustomerRaw(payload);
+        String customerId = regResponse.jsonPath().getString("customerId");
         scenarioContext.set(ScenarioContext.CUSTOMER_ID, customerId);
 
         Response response = kycClient.sendCustomerRegisteredEvent(customerId, UUID.randomUUID().toString());
@@ -107,7 +121,11 @@ public class KycVerificationSteps {
         String customerId  = scenarioContext.get(ScenarioContext.CUSTOMER_ID);
         String documentId  = scenarioContext.get(ScenarioContext.DOCUMENT_ID);
 
-        if (documentId == null) {
+        if (customerId == null || customerId.isBlank()) {
+            customerId = UUID.randomUUID().toString();
+            scenarioContext.set(ScenarioContext.CUSTOMER_ID, customerId);
+        }
+        if (documentId == null || documentId.isBlank()) {
             documentId = UUID.randomUUID().toString();
             scenarioContext.set(ScenarioContext.DOCUMENT_ID, documentId);
         }

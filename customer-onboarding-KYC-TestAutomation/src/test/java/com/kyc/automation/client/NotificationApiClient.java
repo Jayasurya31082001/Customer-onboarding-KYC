@@ -1,10 +1,12 @@
 package com.kyc.automation.client;
 
 import com.kyc.automation.config.BaseApiConfig;
+import com.kyc.automation.util.ApiClientUtil;
+import com.kyc.automation.util.ValidationUtil;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 
-import static io.restassured.RestAssured.given;
+import java.util.Map;
 
 /**
  * API client for the Notification Service (port 8086).
@@ -38,16 +40,17 @@ public class NotificationApiClient {
                                                    String customerEmail,
                                                    String accountNumber,
                                                    String sortCode) {
-        return given()
-                .spec(spec)
-                .body(java.util.Map.of(
-                        "customerId",    customerId,
-                        "customerEmail", customerEmail,
-                        "accountNumber", accountNumber,
-                        "sortCode",      sortCode
-                ))
-                .when()
-                .post("/api/internal/events/account-created");
+        ValidationUtil.requireNonEmpty(customerId, "customerId", "NotificationApiClient.sendAccountCreatedNotification");
+        ValidationUtil.requireNonEmpty(customerEmail, "customerEmail", "NotificationApiClient.sendAccountCreatedNotification");
+        ValidationUtil.requireNonEmpty(accountNumber, "accountNumber", "NotificationApiClient.sendAccountCreatedNotification");
+        ValidationUtil.requireNonEmpty(sortCode, "sortCode", "NotificationApiClient.sendAccountCreatedNotification");
+
+        return ApiClientUtil.executePost(spec, "/api/internal/events/account-created", Map.of(
+                "customerId",    customerId,
+                "customerEmail", customerEmail,
+                "accountNumber", accountNumber,
+                "sortCode",      sortCode
+        ));
     }
 
     /**
@@ -61,14 +64,14 @@ public class NotificationApiClient {
     public Response sendApplicationRejectedNotification(String customerId,
                                                         String customerEmail,
                                                         String reason) {
-        return given()
-                .spec(spec)
-                .body(java.util.Map.of(
-                        "customerId",    customerId,
-                        "customerEmail", customerEmail,
-                        "reason",        reason
-                ))
-                .when()
-                .post("/api/internal/events/application-rejected");
+        ValidationUtil.requireNonEmpty(customerId, "customerId", "NotificationApiClient.sendApplicationRejectedNotification");
+        ValidationUtil.requireNonEmpty(customerEmail, "customerEmail", "NotificationApiClient.sendApplicationRejectedNotification");
+        ValidationUtil.requireNonEmpty(reason, "reason", "NotificationApiClient.sendApplicationRejectedNotification");
+
+        return ApiClientUtil.executePost(spec, "/api/internal/events/application-rejected", Map.of(
+                "customerId",    customerId,
+                "customerEmail", customerEmail,
+                "reason",        reason
+        ));
     }
 }

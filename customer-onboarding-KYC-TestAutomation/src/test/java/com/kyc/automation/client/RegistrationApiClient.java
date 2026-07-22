@@ -1,14 +1,14 @@
 package com.kyc.automation.client;
 
 import com.kyc.automation.config.BaseApiConfig;
+import com.kyc.automation.util.ApiClientUtil;
+import com.kyc.automation.util.ValidationUtil;
 import io.restassured.response.Response;
 import io.restassured.specification.RequestSpecification;
 
 import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.Map;
-
-import static io.restassured.RestAssured.given;
 
 /**
  * API client for the Customer Service (port 8081).
@@ -42,69 +42,68 @@ public class RegistrationApiClient {
                                      String addressLine1,
                                      String city,
                                      String postcode) {
+        ValidationUtil.requireNonEmpty(firstName, "firstName", "RegistrationApiClient.registerCustomer");
+        ValidationUtil.requireNonEmpty(lastName, "lastName", "RegistrationApiClient.registerCustomer");
+        ValidationUtil.requireNonEmpty(email, "email", "RegistrationApiClient.registerCustomer");
+        ValidationUtil.requireNonNull(dateOfBirth, "dateOfBirth", "RegistrationApiClient.registerCustomer");
+        ValidationUtil.requireNonEmpty(phoneNumber, "phoneNumber", "RegistrationApiClient.registerCustomer");
+        ValidationUtil.requireNonEmpty(nationality, "nationality", "RegistrationApiClient.registerCustomer");
+        ValidationUtil.requireNonEmpty(addressLine1, "addressLine1", "RegistrationApiClient.registerCustomer");
+        ValidationUtil.requireNonEmpty(city, "city", "RegistrationApiClient.registerCustomer");
+        ValidationUtil.requireNonEmpty(postcode, "postcode", "RegistrationApiClient.registerCustomer");
 
         Map<String, Object> body = new HashMap<>();
-        body.put("firstName",   firstName);
-        body.put("lastName",    lastName);
-        body.put("email",       email);
-        body.put("dateOfBirth", dateOfBirth != null ? dateOfBirth.toString() : null);
-        body.put("phoneNumber", phoneNumber);
-        body.put("nationality", nationality);
+        body.put("firstName",    firstName);
+        body.put("lastName",     lastName);
+        body.put("email",        email);
+        body.put("dateOfBirth",  dateOfBirth.toString());
+        body.put("phoneNumber",  phoneNumber);
+        body.put("nationality",  nationality);
         body.put("addressLine1", addressLine1);
-        body.put("city",        city);
-        body.put("postcode",    postcode);
+        body.put("city",         city);
+        body.put("postcode",     postcode);
 
-        return given()
-                .spec(spec)
-                .body(body)
-                .when()
-                .post("/api/v1/customers");
+        return ApiClientUtil.executePost(spec, "/api/v1/customers", body);
     }
 
     /**
      * Registers a customer using a pre-built body map (useful for partial/invalid payloads).
      */
     public Response registerCustomerRaw(Map<String, Object> body) {
-        return given()
-                .spec(spec)
-                .body(body)
-                .when()
-                .post("/api/v1/customers");
+        ValidationUtil.requireNonEmpty(body, "body", "RegistrationApiClient.registerCustomerRaw");
+
+        return ApiClientUtil.executePost(spec, "/api/v1/customers", body);
     }
 
     /**
      * Fetches a single customer by UUID.
      */
     public Response getCustomer(String customerId) {
-        return given()
-                .spec(spec)
-                .when()
-                .get("/api/v1/customers/{customerId}", customerId);
+        ValidationUtil.requireNonEmpty(customerId, "customerId", "RegistrationApiClient.getCustomer");
+
+        return ApiClientUtil.executeGet(spec, "/api/v1/customers/{customerId}", customerId);
     }
 
     /**
      * Queries customers filtered by onboarding status.
      */
     public Response getCustomersByStatus(String status) {
-        return given()
-                .spec(spec)
-                .queryParam("status", status)
-                .when()
-                .get("/api/v1/customers");
+        ValidationUtil.requireNonEmpty(status, "status", "RegistrationApiClient.getCustomersByStatus");
+
+        return ApiClientUtil.executeGetWithQueryParam(spec, "/api/v1/customers", "status", status);
     }
 
     /**
      * Updates a customer's onboarding status via PATCH.
      */
     public Response updateOnboardingStatus(String customerId, String newStatus) {
+        ValidationUtil.requireNonEmpty(customerId, "customerId", "RegistrationApiClient.updateOnboardingStatus");
+        ValidationUtil.requireNonEmpty(newStatus, "newStatus", "RegistrationApiClient.updateOnboardingStatus");
+
         Map<String, String> body = new HashMap<>();
         body.put("status", newStatus);
 
-        return given()
-                .spec(spec)
-                .body(body)
-                .when()
-                .patch("/api/v1/customers/{customerId}/status", customerId);
+        return ApiClientUtil.executePatch(spec, "/api/v1/customers/{customerId}/status", body, customerId);
     }
 
     /**
@@ -112,6 +111,8 @@ public class RegistrationApiClient {
      * using sensible defaults so callers need only override the field under test.
      */
     public static Map<String, Object> validPayload(String uniqueEmail) {
+        ValidationUtil.requireNonEmpty(uniqueEmail, "uniqueEmail", "RegistrationApiClient.validPayload");
+
         Map<String, Object> body = new HashMap<>();
         body.put("firstName",    "Alice");
         body.put("lastName",     "Walker");

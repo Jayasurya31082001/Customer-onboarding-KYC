@@ -1,5 +1,6 @@
 package com.kyc.automation.context;
 
+import com.kyc.automation.util.ValidationUtil;
 import io.restassured.response.Response;
 
 import java.util.HashMap;
@@ -36,6 +37,7 @@ public class ScenarioContext {
 
     /** Stores any typed value under the given key. */
     public void set(String key, Object value) {
+        ValidationUtil.requireNonEmpty(key, "key", "ScenarioContext.set");
         store.put(key, value);
     }
 
@@ -48,6 +50,7 @@ public class ScenarioContext {
      */
     @SuppressWarnings("unchecked")
     public <T> T get(String key) {
+        ValidationUtil.requireNonEmpty(key, "key", "ScenarioContext.get");
         return (T) store.get(key);
     }
 
@@ -55,6 +58,7 @@ public class ScenarioContext {
      * Returns {@code true} if the given key is present in the context.
      */
     public boolean contains(String key) {
+        ValidationUtil.requireNonEmpty(key, "key", "ScenarioContext.contains");
         return store.containsKey(key);
     }
 
@@ -63,6 +67,7 @@ public class ScenarioContext {
      * Used by {@link com.kyc.automation.hooks.ApiHooks} for on-failure logging.
      */
     public void setLastResponse(Response response) {
+        ValidationUtil.requireNonNull(response, "response", "ScenarioContext.setLastResponse");
         store.put(LAST_RESPONSE, response);
     }
 

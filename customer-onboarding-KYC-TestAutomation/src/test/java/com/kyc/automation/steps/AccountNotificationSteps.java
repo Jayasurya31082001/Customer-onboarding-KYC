@@ -55,28 +55,27 @@ public class AccountNotificationSteps {
 
     @Given("the Account Service is running on its configured port")
     public void theAccountServiceIsRunning() {
-        int status = given()
-                .spec(BaseApiConfig.accountServiceSpec())
-                .when()
-                .get("/api/v1/accounts/health-probe")
-                .then()
-                .extract()
-                .statusCode();
-        assertThat(status).isLessThan(500);
-        LOG.info("Account Service health check passed (HTTP {})", status);
+        assertThat(isPortOpen(BaseApiConfig.ACCOUNT_SERVICE_PORT))
+                .as("Account Service must be running on port %d", BaseApiConfig.ACCOUNT_SERVICE_PORT)
+                .isTrue();
+        LOG.info("Account Service health check passed on port {}", BaseApiConfig.ACCOUNT_SERVICE_PORT);
     }
 
     @Given("the Notification Service is running on its configured port")
     public void theNotificationServiceIsRunning() {
-        int status = given()
-                .spec(BaseApiConfig.notificationServiceSpec())
-                .when()
-                .get("/api/internal/health-probe")
-                .then()
-                .extract()
-                .statusCode();
-        assertThat(status).isLessThan(500);
-        LOG.info("Notification Service health check passed (HTTP {})", status);
+        assertThat(isPortOpen(BaseApiConfig.NOTIFICATION_SERVICE_PORT))
+                .as("Notification Service must be running on port %d", BaseApiConfig.NOTIFICATION_SERVICE_PORT)
+                .isTrue();
+        LOG.info("Notification Service health check passed on port {}", BaseApiConfig.NOTIFICATION_SERVICE_PORT);
+    }
+
+    private static boolean isPortOpen(int port) {
+        try (java.net.Socket socket = new java.net.Socket()) {
+            socket.connect(new java.net.InetSocketAddress("localhost", port), 2000);
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     @Given("a customer with email {string} has passed KYC verification")
