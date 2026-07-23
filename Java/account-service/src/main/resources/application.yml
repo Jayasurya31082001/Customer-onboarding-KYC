@@ -5,19 +5,15 @@ spring:
   application:
     name: account-service
   datasource:
-    url: jdbc:h2:mem:onboarding_account;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-    username: sa
-    password:
-    driver-class-name: org.h2.Driver
+    url: jdbc:mysql://localhost:3306/onboarding_account?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: ${DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
       ddl-auto: validate
-    database-platform: org.hibernate.dialect.H2Dialect
+    database-platform: org.hibernate.dialect.MySQLDialect
     open-in-view: false
-  h2:
-    console:
-      enabled: false
-      path: /h2-console
   liquibase:
     enabled: true
     change-log: classpath:db/changelog/db.changelog-master.xml

@@ -1,0 +1,132 @@
+version: '3.8'
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: onboarding-mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASSWORD:-Welcome@123}
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./docker-init:/docker-entrypoint-initdb.d
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p$${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  customer-service:
+    build:
+      context: ./Java/customer-service
+      dockerfile: Dockerfile
+    container_name: customer-service
+    restart: always
+    ports:
+      - "8081:8081"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/customerdb?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-Welcome@123}
+      KYC_SERVICE_BASE_URL: http://kyc-service:8083
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  document-service:
+    build:
+      context: ./Java/document-service
+      dockerfile: Dockerfile
+    container_name: document-service
+    restart: always
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/documentdb?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-Welcome@123}
+      CUSTOMER_SERVICE_BASE_URL: http://customer-service:8081
+      KYC_SERVICE_BASE_URL: http://kyc-service:8083
+    depends_on:
+      mysql:
+        condition: service_healthy
+      customer-service:
+        condition: service_started
+
+  kyc-service:
+    build:
+      context: ./Java/kyc-service
+      dockerfile: Dockerfile
+    container_name: kyc-service
+    restart: always
+    ports:
+      - "8083:8083"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/kycdb?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-Welcome@123}
+      CUSTOMER_SERVICE_BASE_URL: http://customer-service:8081
+      DOCUMENT_SERVICE_BASE_URL: http://document-service:8082
+      RISK_SERVICE_BASE_URL: http://risk-service:8084
+      NOTIFICATION_SERVICE_BASE_URL: http://notification-service:8086
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  risk-service:
+    build:
+      context: ./Java/risk-service
+      dockerfile: Dockerfile
+    container_name: risk-service
+    restart: always
+    ports:
+      - "8084:8084"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/onboarding_risk?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-Welcome@123}
+      CUSTOMER_SERVICE_BASE_URL: http://customer-service:8081
+      ACCOUNT_SERVICE_BASE_URL: http://account-service:8085
+      NOTIFICATION_SERVICE_BASE_URL: http://notification-service:8086
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  account-service:
+    build:
+      context: ./Java/account-service
+      dockerfile: Dockerfile
+    container_name: account-service
+    restart: always
+    ports:
+      - "8085:8085"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/onboarding_account?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-Welcome@123}
+      CUSTOMER_SERVICE_BASE_URL: http://customer-service:8081
+      NOTIFICATION_SERVICE_BASE_URL: http://notification-service:8086
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  notification-service:
+    build:
+      context: ./Java/notification-service
+      dockerfile: Dockerfile
+    container_name: notification-service
+    restart: always
+    ports:
+      - "8086:8086"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/onboarding_notification?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-Welcome@123}
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+volumes:
+  mysql_data:
