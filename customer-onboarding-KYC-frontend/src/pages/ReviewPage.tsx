@@ -1,13 +1,12 @@
 import { useNavigate } from "react-router-dom";
 import { useOnboarding } from "../hooks/useOnboarding";
-import { customerService } from "../services/customerService";
-import { OnboardingStatus } from "../types/customer.types";
+
 
 export const ReviewPage = () => {
   const navigate = useNavigate();
   const {
     state: { customerId, personalDetails },
-    dispatch,
+   
   } = useOnboarding();
 
   const handleConfirm = async () => {
@@ -15,11 +14,7 @@ export const ReviewPage = () => {
       return;
     }
 
-    const response = await customerService.updateCustomerStatus(customerId, OnboardingStatus.KYC_COMPLETED);
-    dispatch({
-      type: "SET_APPLICATION_STATUS",
-      payload: response.status,
-    });
+
     navigate("/onboarding/confirmation", { replace: true });
   };
 
