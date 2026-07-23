@@ -46,5 +46,34 @@
         </createTable>
     </changeSet>
 
+    <!--
+        Changeset 2 — Add updated_at column for incremental sync support.
+
+        The data-sync-service uses updated_at as the sync cursor to detect
+        changes since the last run. This column is managed automatically by
+        Spring Data JPA auditing (@LastModifiedDate) via @PreUpdate on the entity.
+
+        Back-fill: existing rows get updated_at = created_at so the column
+        is never null and the first sync picks them all up correctly.
+    -->
+    <changeSet id="2-add-updated-at-to-customers" author="data-sync-service">
+        <addColumn tableName="customers">
+            <column name="updated_at" type="TIMESTAMP">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+
+        <!-- Back-fill existing rows: set updated_at = created_at -->
+        <update tableName="customers">
+            <column name="updated_at" valueComputed="created_at"/>
+            <where>updated_at IS NULL</where>
+        </update>
+
+        <!-- Create index on updated_at to make incremental queries efficient -->
+        <createIndex tableName="customers" indexName="idx_customers_updated_at">
+            <column name="updated_at"/>
+        </createIndex>
+    </changeSet>
+
 </databaseChangeLog>
 

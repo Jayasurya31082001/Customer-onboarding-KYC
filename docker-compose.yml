@@ -128,5 +128,54 @@ services:
       mysql:
         condition: service_healthy
 
+  data-sync-service:
+    build:
+      context: ./Java/data-sync-service
+      dockerfile: Dockerfile
+    container_name: data-sync-service
+    restart: always
+    ports:
+      - "8087:8087"
+    environment:
+      # Sync metadata database
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/onboarding_sync_meta?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+      SPRING_DATASOURCE_USERNAME: root
+      SPRING_DATASOURCE_PASSWORD: ${DB_PASSWORD:-Welcome@123}
+      # Upstream business service URLs (internal Docker network)
+      CUSTOMER_SERVICE_BASE_URL: http://customer-service:8081
+      DOCUMENT_SERVICE_BASE_URL: http://document-service:8082
+      KYC_SERVICE_BASE_URL: http://kyc-service:8083
+      RISK_SERVICE_BASE_URL: http://risk-service:8084
+      ACCOUNT_SERVICE_BASE_URL: http://account-service:8085
+      NOTIFICATION_SERVICE_BASE_URL: http://notification-service:8086
+      # Shared secret for /internal/sync endpoint auth
+      INTERNAL_SERVICE_SECRET: ${INTERNAL_SERVICE_SECRET:-dev-internal-secret-change-in-prod}
+      # Databricks credentials (set in your .env file)
+      DATABRICKS_WORKSPACE_URL: ${DATABRICKS_WORKSPACE_URL}
+      DATABRICKS_TOKEN: ${DATABRICKS_TOKEN}
+      # Sync interval override (optional; default: every 15 min)
+      DATASYNC_SCHEDULER_CRON: ${DATASYNC_SCHEDULER_CRON:-0 */15 * * * *}
+    depends_on:
+      mysql:
+        condition: service_healthy
+      customer-service:
+        condition: service_started
+      document-service:
+        condition: service_started
+      kyc-service:
+        condition: service_started
+      risk-service:
+        condition: service_started
+      account-service:
+        condition: service_started
+      notification-service:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8088/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
 volumes:
   mysql_data:

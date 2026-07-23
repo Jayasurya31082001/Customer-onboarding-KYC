@@ -16,4 +16,8 @@
     <changeSet id="003-seed-risk-rules" author="copilot">
         <sqlFile path="db/changelog/changes/003-seed-risk-rules.sql" relativeToChangelogFile="false"/>
     </changeSet>
+
+    <changeSet id="004-add-updated-at-risk-assessments" author="data-sync-service">
+        <sqlFile path="db/changelog/changes/004-add-updated-at-risk-assessments.sql" relativeToChangelogFile="false"/>
+    </changeSet>
 </databaseChangeLog>

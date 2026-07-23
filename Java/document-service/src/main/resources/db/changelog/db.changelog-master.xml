@@ -34,4 +34,21 @@
             <column name="customer_id"/>
         </createIndex>
     </changeSet>
+
+    <!-- Changeset 2 — Add updated_at for incremental sync support -->
+    <changeSet id="2-add-updated-at-to-documents" author="data-sync-service">
+        <addColumn tableName="documents">
+            <column name="updated_at" type="TIMESTAMP">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+        <update tableName="documents">
+            <column name="updated_at" valueComputed="created_at"/>
+            <where>updated_at IS NULL</where>
+        </update>
+        <createIndex tableName="documents" indexName="idx_documents_updated_at">
+            <column name="updated_at"/>
+        </createIndex>
+    </changeSet>
+
 </databaseChangeLog>

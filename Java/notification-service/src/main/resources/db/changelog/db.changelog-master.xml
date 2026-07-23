@@ -16,4 +16,8 @@
     <changeSet id="003-seed-templates" author="copilot">
         <sqlFile path="changes/003-seed-templates.sql" relativeToChangelogFile="true"/>
     </changeSet>
+
+    <changeSet id="004-add-updated-at-notification-log" author="data-sync-service">
+        <sqlFile path="changes/004-add-updated-at-notification-log.sql" relativeToChangelogFile="true"/>
+    </changeSet>
 </databaseChangeLog>

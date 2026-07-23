@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+            http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.20.xsd">
+
+    <!--
+        Synchronization metadata table.
+        One row per upstream business microservice.
+        Tracks the last successful sync timestamp and job status for incremental pull.
+    -->
+    <changeSet id="001" author="data-sync-service">
+        <createTable tableName="sync_metadata">
+            <column name="id" type="BIGINT" autoIncrement="true">
+                <constraints primaryKey="true" nullable="false"/>
+            </column>
+            <column name="service_name" type="VARCHAR(100)">
+                <constraints nullable="false" unique="true"/>
+            </column>
+            <column name="last_successful_sync" type="DATETIME(6)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="last_job_status" type="VARCHAR(20)">
+                <constraints nullable="true"/>
+                <!-- Values: RUNNING, COMPLETED, FAILED, SKIPPED -->
+            </column>
+            <column name="last_processed_record" type="VARCHAR(36)">
+                <constraints nullable="true"/>
+                <!-- UUID of the last record successfully pushed to Databricks -->
+            </column>
+            <column name="total_records_last_sync" type="BIGINT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="failed_records_last_sync" type="BIGINT" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="DATETIME(6)">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="DATETIME(6)">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+
+        <!-- Seed one row per known microservice so there is always a baseline -->
+        <insert tableName="sync_metadata">
+            <column name="service_name" value="customer-service"/>
+            <column name="last_successful_sync" valueDate="2000-01-01T00:00:00"/>
+            <column name="last_job_status" value="NONE"/>
+            <column name="total_records_last_sync" valueNumeric="0"/>
+            <column name="failed_records_last_sync" valueNumeric="0"/>
+            <column name="created_at" valueComputed="NOW()"/>
+            <column name="updated_at" valueComputed="NOW()"/>
+        </insert>
+        <insert tableName="sync_metadata">
+            <column name="service_name" value="document-service"/>
+            <column name="last_successful_sync" valueDate="2000-01-01T00:00:00"/>
+            <column name="last_job_status" value="NONE"/>
+            <column name="total_records_last_sync" valueNumeric="0"/>
+            <column name="failed_records_last_sync" valueNumeric="0"/>
+            <column name="created_at" valueComputed="NOW()"/>
+            <column name="updated_at" valueComputed="NOW()"/>
+        </insert>
+        <insert tableName="sync_metadata">
+            <column name="service_name" value="kyc-service"/>
+            <column name="last_successful_sync" valueDate="2000-01-01T00:00:00"/>
+            <column name="last_job_status" value="NONE"/>
+            <column name="total_records_last_sync" valueNumeric="0"/>
+            <column name="failed_records_last_sync" valueNumeric="0"/>
+            <column name="created_at" valueComputed="NOW()"/>
+            <column name="updated_at" valueComputed="NOW()"/>
+        </insert>
+        <insert tableName="sync_metadata">
+            <column name="service_name" value="risk-service"/>
+            <column name="last_successful_sync" valueDate="2000-01-01T00:00:00"/>
+            <column name="last_job_status" value="NONE"/>
+            <column name="total_records_last_sync" valueNumeric="0"/>
+            <column name="failed_records_last_sync" valueNumeric="0"/>
+            <column name="created_at" valueComputed="NOW()"/>
+            <column name="updated_at" valueComputed="NOW()"/>
+        </insert>
+        <insert tableName="sync_metadata">
+            <column name="service_name" value="account-service"/>
+            <column name="last_successful_sync" valueDate="2000-01-01T00:00:00"/>
+            <column name="last_job_status" value="NONE"/>
+            <column name="total_records_last_sync" valueNumeric="0"/>
+            <column name="failed_records_last_sync" valueNumeric="0"/>
+            <column name="created_at" valueComputed="NOW()"/>
+            <column name="updated_at" valueComputed="NOW()"/>
+        </insert>
+        <insert tableName="sync_metadata">
+            <column name="service_name" value="notification-service"/>
+            <column name="last_successful_sync" valueDate="2000-01-01T00:00:00"/>
+            <column name="last_job_status" value="NONE"/>
+            <column name="total_records_last_sync" valueNumeric="0"/>
+            <column name="failed_records_last_sync" valueNumeric="0"/>
+            <column name="created_at" valueComputed="NOW()"/>
+            <column name="updated_at" valueComputed="NOW()"/>
+        </insert>
+    </changeSet>
+
+</databaseChangeLog>

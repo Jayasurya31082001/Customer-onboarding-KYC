@@ -100,4 +100,10 @@
             <column name="customer_id"/>
         </createIndex>
     </changeSet>
+
+    <changeSet id="5-add-index-updated-at-kyc-cases" author="data-sync-service">
+        <createIndex tableName="kyc_cases" indexName="idx_kyc_cases_updated_at">
+            <column name="updated_at"/>
+        </createIndex>
+    </changeSet>
 </databaseChangeLog>

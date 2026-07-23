@@ -1,0 +1,114 @@
+server:
+  port: 8087
+
+spring:
+  application:
+    name: data-sync-service
+
+  datasource:
+    url: jdbc:mysql://localhost:3306/onboarding_sync_meta?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: ${DB_PASSWORD:}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      minimum-idle: 2
+      maximum-pool-size: 10
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    database-platform: org.hibernate.dialect.MySQLDialect
+    open-in-view: false
+
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.xml
+
+  batch:
+    job:
+      enabled: false           # Do NOT run job on startup; scheduler controls it
+    jdbc:
+      initialize-schema: always
+
+# ─── Service Base URLs ────────────────────────────────────────────────────────
+services:
+  customer:
+    base-url: ${CUSTOMER_SERVICE_BASE_URL:http://localhost:8081}
+  document:
+    base-url: ${DOCUMENT_SERVICE_BASE_URL:http://localhost:8082}
+  kyc:
+    base-url: ${KYC_SERVICE_BASE_URL:http://localhost:8083}
+  risk:
+    base-url: ${RISK_SERVICE_BASE_URL:http://localhost:8084}
+  account:
+    base-url: ${ACCOUNT_SERVICE_BASE_URL:http://localhost:8085}
+  notification:
+    base-url: ${NOTIFICATION_SERVICE_BASE_URL:http://localhost:8086}
+
+# ─── Databricks ───────────────────────────────────────────────────────────────
+databricks:
+  workspace-url: ${DATABRICKS_WORKSPACE_URL:https://adb-xxxx.azuredatabricks.net}
+  token: ${DATABRICKS_TOKEN:}
+  catalog: kyc_analytics
+  schema: onboarding
+  connect-timeout-seconds: 10
+  read-timeout-seconds: 60
+
+# ─── Batch / Sync Configuration ───────────────────────────────────────────────
+datasync:
+  scheduler:
+    cron: "0 */15 * * * *"     # Every 15 minutes; override via env
+    enabled: true
+  batch:
+    chunk-size: 1000
+    page-size: 1000
+    skip-limit: 10
+  retry:
+    databricks:
+      max-attempts: 5
+      initial-interval-ms: 1000
+      multiplier: 2.0
+      max-interval-ms: 30000
+    service-fetch:
+      max-attempts: 3
+      initial-interval-ms: 500
+      multiplier: 1.5
+      max-interval-ms: 10000
+  security:
+    internal-secret: ${INTERNAL_SERVICE_SECRET:dev-internal-secret-changeme}
+
+# ─── Actuator / Management ────────────────────────────────────────────────────
+management:
+  server:
+    port: 8088                 # Separate management port — not exposed externally
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,info,prometheus,batch,loggers
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+# ─── Logging ──────────────────────────────────────────────────────────────────
+logging:
+  level:
+    com.example.datasyncservice: DEBUG
+    org.springframework.batch: INFO
+    org.springframework.retry: DEBUG
+  pattern:
+    console: "%d{ISO8601} [%thread] %-5level %logger{36} [jobId=%X{jobId}] [service=%X{serviceName}] - %msg%n"
+
+# ─── OpenAPI ──────────────────────────────────────────────────────────────────
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html

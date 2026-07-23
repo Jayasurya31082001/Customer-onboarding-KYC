@@ -1,0 +1,42 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:sync_meta_db;DB_CLOSE_DELAY=-1;MODE=MySQL
+    username: sa
+    password: sa
+    driver-class-name: org.h2.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: update
+  liquibase:
+    enabled: true
+    change-log: classpath:db/changelog/db.changelog-master.xml
+  batch:
+    job:
+      enabled: false
+
+# Timings and configurations mocked for test profile
+datasync:
+  scheduler:
+    enabled: false
+    cron: "0 0 1 1 * ?"
+  security:
+    internal-secret: test-secret
+
+services:
+  customer:
+    base-url: http://localhost:8081
+  document:
+    base-url: http://localhost:8082
+  kyc:
+    base-url: http://localhost:8083
+  risk:
+    base-url: http://localhost:8084
+  account:
+    base-url: http://localhost:8085
+  notification:
+    base-url: http://localhost:8086
+
+databricks:
+  workspace-url: https://adb-test.databricks.net
+  token: test-token
