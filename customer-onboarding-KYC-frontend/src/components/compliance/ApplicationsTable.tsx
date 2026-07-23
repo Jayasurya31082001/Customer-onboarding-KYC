@@ -14,30 +14,33 @@ export const ApplicationsTable = ({
   if (applications.length === 0) {
     return (
       <p className="rounded border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900" role="status">
-        No customers are currently in MANUAL_APPROVAL_REQUIRED status.
+        No customers are currently matching the filter criteria.
       </p>
     );
   }
 
   return (
-    <div className="overflow-x-auto rounded-lg border border-slate-200">
+    <div className="overflow-x-auto rounded-lg border border-slate-200 shadow-sm">
       <table className="min-w-full divide-y divide-slate-200 text-left text-sm text-slate-900" data-e2e="applications-table">
         <thead className="bg-slate-50">
           <tr>
             <th className="px-3 py-2 font-semibold text-slate-900">Customer ID</th>
+            <th className="px-3 py-2 font-semibold text-slate-900">Customer Name</th>
             <th className="px-3 py-2 font-semibold text-slate-900">Email</th>
             <th className="px-3 py-2 font-semibold text-slate-900">Risk Score</th>
-            <th className="px-3 py-2 font-semibold text-slate-900">Disposition</th>
-            <th className="px-3 py-2 font-semibold text-slate-900">Status</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-slate-100 bg-white">
           {applications.map((application) => {
             const isSelected = application.customerId === selectedCustomerId;
+            const firstName = application.firstName ?? "";
+            const lastName = application.lastName ?? "";
+            const fullName = `${firstName} ${lastName}`.trim() || "N/A";
+
             return (
               <tr
                 key={application.customerId}
-                className={isSelected ? "bg-sky-50" : "hover:bg-slate-50"}
+                className={isSelected ? "bg-sky-50" : "hover:bg-slate-50 cursor-pointer"}
                 onClick={() => onSelect(application)}
                 onKeyDown={(event) => {
                   if (event.key === "Enter" || event.key === " ") {
@@ -51,10 +54,9 @@ export const ApplicationsTable = ({
                 data-e2e={`application-row-${application.customerId}`}
               >
                 <td className="px-3 py-2 font-mono text-xs text-slate-900 sm:text-sm">{application.customerId}</td>
+                <td className="px-3 py-2 font-medium text-slate-900">{fullName}</td>
                 <td className="px-3 py-2 text-slate-900">{application.email}</td>
                 <td className="px-3 py-2 text-slate-900">{application.riskScore ?? "N/A"}</td>
-                <td className="px-3 py-2 text-slate-900">{application.disposition}</td>
-                <td className="px-3 py-2 text-slate-900">{application.status}</td>
               </tr>
             );
           })}

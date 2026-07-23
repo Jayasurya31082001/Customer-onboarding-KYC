@@ -1,6 +1,6 @@
 import { useCallback, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { useDropzone } from "react-dropzone";
+import { useDropzone, type FileRejection } from "react-dropzone";
 import { useOnboarding } from "../hooks/useOnboarding";
 import { documentService } from "../services/documentService";
 import {
@@ -91,7 +91,30 @@ export const DocumentUploadPage = () => {
   );
 
   const onDrop = useCallback(
-    (acceptedFiles: File[]) => {
+    (acceptedFiles: File[], fileRejections: FileRejection[]) => {
+      if (fileRejections.length > 0) {
+        const rejection = fileRejections[0];
+        const error = rejection.errors[0];
+        let errorMessage = `File "${rejection.file.name}" was rejected.`;
+
+        if (error?.code === "file-too-large") {
+          errorMessage = `File "${rejection.file.name}" exceeds the maximum allowed size of 5 MB.`;
+        } else if (error?.code === "file-invalid-type") {
+          errorMessage = `File "${rejection.file.name}" has an unsupported file type. Accepted formats: PDF, JPEG, PNG.`;
+        } else if (error?.message) {
+          errorMessage = error.message;
+        }
+
+        setUploadState({
+          fileName: rejection.file.name,
+          progress: 0,
+          status: "error",
+          errorMessage,
+        });
+        setAnnounceMessage(errorMessage);
+        return;
+      }
+
       const selected = acceptedFiles[0];
       if (!selected) {
         return;

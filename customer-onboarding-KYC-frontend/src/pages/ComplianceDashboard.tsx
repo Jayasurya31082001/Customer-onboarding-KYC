@@ -3,16 +3,55 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ApplicationDetailPanel } from "../components/compliance/ApplicationDetailPanel";
 import { ApplicationsTable } from "../components/compliance/ApplicationsTable";
 import { DecisionModal } from "../components/compliance/DecisionModal";
+import { ComplianceAnalyticsCharts } from "../components/compliance/ComplianceAnalyticsCharts";
+import {
+  ComplianceFilters,
+  type ComplianceFilterState,
+  type FilterOperator,
+  type RiskOperator,
+} from "../components/compliance/ComplianceFilters";
 import {
   complianceService,
   type ComplianceApplication,
   type ComplianceDecision,
 } from "../services/complianceService";
 
+const initialFilterState: ComplianceFilterState = {
+  customerIdOp: "CONTAINS",
+  customerId: "",
+  customerNameOp: "CONTAINS",
+  customerName: "",
+  emailOp: "CONTAINS",
+  email: "",
+  riskScoreOp: "ALL",
+  riskScore: "",
+};
+
+const matchText = (value: string, query: string, op: FilterOperator): boolean => {
+  if (!query.trim()) return true;
+  const val = value.toLowerCase();
+  const q = query.trim().toLowerCase();
+  if (op === "EQUALS") return val === q;
+  if (op === "STARTS_WITH") return val.startsWith(q);
+  return val.includes(q); // CONTAINS
+};
+
+const matchScore = (score: number | null, query: string, op: RiskOperator): boolean => {
+  if (op === "ALL" || !query.trim()) return true;
+  const target = Number(query.trim());
+  if (Number.isNaN(target)) return true;
+  if (score === null) return false;
+  if (op === "GREATER_THAN") return score > target;
+  if (op === "LESS_THAN") return score < target;
+  if (op === "EQUALS") return score === target;
+  return true;
+};
+
 export const ComplianceDashboard = () => {
   const queryClient = useQueryClient();
   const [selectedApplication, setSelectedApplication] = useState<ComplianceApplication | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [filters, setFilters] = useState<ComplianceFilterState>(initialFilterState);
 
   const applicationsQuery = useQuery({
     queryKey: ["compliance-applications"],
@@ -22,13 +61,50 @@ export const ComplianceDashboard = () => {
     refetchInterval: 5_000,
   });
 
+  const allApplications = useMemo(() => applicationsQuery.data ?? [], [applicationsQuery.data]);
+
+  const filteredApplications = useMemo(() => {
+    return allApplications.filter((app) => {
+      // Customer ID
+      if (!matchText(app.customerId, filters.customerId, filters.customerIdOp)) {
+        return false;
+      }
+
+      // Customer Name
+      const fullName = `${app.firstName ?? ""} ${app.lastName ?? ""}`.trim();
+      if (!matchText(fullName, filters.customerName, filters.customerNameOp)) {
+        return false;
+      }
+
+      // Email
+      if (!matchText(app.email, filters.email, filters.emailOp)) {
+        return false;
+      }
+
+      // Risk Score
+      if (!matchScore(app.riskScore, filters.riskScore, filters.riskScoreOp)) {
+        return false;
+      }
+
+      return true;
+    });
+  }, [allApplications, filters]);
+
   const selectedCustomerId = useMemo(() => selectedApplication?.customerId ?? null, [selectedApplication]);
-  const recordCount = applicationsQuery.data?.length ?? 0;
+  const recordCount = allApplications.length;
   const lastFetchedAt = applicationsQuery.dataUpdatedAt
     ? new Date(applicationsQuery.dataUpdatedAt).toLocaleString()
     : "Not fetched yet";
 
-  const handleSubmitDecision = async (decision: ComplianceDecision, reason: string) => {
+  const handleFilterChange = (updated: Partial<ComplianceFilterState>) => {
+    setFilters((prev) => ({ ...prev, ...updated }));
+  };
+
+  const handleResetFilters = () => {
+    setFilters(initialFilterState);
+  };
+
+  const handleSubmitDecision = async (decision: ComplianceDecision) => {
     if (!selectedApplication) {
       throw new Error("No application selected.");
     }
@@ -39,7 +115,6 @@ export const ComplianceDashboard = () => {
       customerId: decidedCustomerId,
       customerEmail: selectedApplication.email,
       decision,
-      reason,
     });
 
     if (decision === "APPROVE" || decision === "REJECT") {
@@ -79,6 +154,18 @@ export const ComplianceDashboard = () => {
         </div>
       </header>
 
+      {/* Analytics Summary & Charts */}
+      <ComplianceAnalyticsCharts applications={allApplications} />
+
+      {/* Filters Bar */}
+      <ComplianceFilters
+        filters={filters}
+        onFilterChange={handleFilterChange}
+        onResetFilters={handleResetFilters}
+        totalMatches={filteredApplications.length}
+        totalRecords={recordCount}
+      />
+
       {applicationsQuery.isLoading ? <p role="status">Loading applications...</p> : null}
 
       {applicationsQuery.error ? (
@@ -89,9 +176,10 @@ export const ComplianceDashboard = () => {
         </p>
       ) : null}
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[2fr_1fr]">
+      {/* Table & Detail Container */}
+      <div className="flex flex-col gap-4">
         <ApplicationsTable
-          applications={applicationsQuery.data ?? []}
+          applications={filteredApplications}
           selectedCustomerId={selectedCustomerId}
           onSelect={setSelectedApplication}
         />

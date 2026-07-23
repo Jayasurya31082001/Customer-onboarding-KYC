@@ -33,13 +33,19 @@ const personalDetailsSchema = z.object({
     .trim()
     .min(2, "First name must be between 2 and 50 characters")
     .max(50, "First name must be between 2 and 50 characters")
-    .regex(/^[A-Za-z]{2,50}$/, "First name must contain letters only"),
+    .regex(
+      /^[A-Za-z' -]{2,50}$/,
+      "First name must contain letters, spaces, apostrophes, or hyphens only",
+    ),
   lastName: z
     .string()
     .trim()
     .min(2, "Last name must be between 2 and 50 characters")
     .max(50, "Last name must be between 2 and 50 characters")
-    .regex(/^[A-Za-z]{2,50}$/, "Last name must contain letters only"),
+    .regex(
+      /^[A-Za-z' -]{2,50}$/,
+      "Last name must contain letters, spaces, apostrophes, or hyphens only",
+    ),
   email: z.string().trim().toLowerCase().email("Enter a valid email"),
   dateOfBirth: z
     .string()
@@ -203,177 +209,181 @@ export const RegistrationPage = () => {
     "mt-1 w-full rounded-lg border border-slate-400 bg-white/95 px-3 py-2 text-slate-900 placeholder:text-slate-500 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-200";
 
   return (
-    <section aria-labelledby="personal-details-heading" data-e2e="registration-page">
-      <h2 id="personal-details-heading" className="text-2xl font-bold text-slate-900">
-        Step 1: Personal Details
-      </h2>
-      <p className="mt-1 text-sm text-slate-700">All fields must match the customer-service validation rules.</p>
+    <section aria-labelledby="personal-details-heading" data-e2e="registration-page" className="flex flex-1 flex-col h-full justify-between">
+      <div>
+        <h2 id="personal-details-heading" className="text-2xl font-bold text-slate-900">
+          Step 1: Personal Details
+        </h2>
+        <p className="mt-1 text-sm text-slate-700">All fields must match the customer-service validation rules.</p>
+      </div>
 
-      <form className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2" onSubmit={handleSubmit(onSubmit)} noValidate>
-        <div>
-          <label htmlFor="firstName" className="text-sm font-semibold text-slate-800">
-            First Name
-          </label>
-          <input id="firstName" className={fieldClass} aria-describedby={errors.firstName ? "firstName-error" : undefined} {...register("firstName")} />
-          {errors.firstName ? (
-            <p id="firstName-error" className="mt-1 text-sm text-red-700" role="alert">
-              {errors.firstName.message}
-            </p>
-          ) : null}
-        </div>
-
-        <div>
-          <label htmlFor="lastName" className="text-sm font-semibold text-slate-800">
-            Last Name
-          </label>
-          <input id="lastName" className={fieldClass} aria-describedby={errors.lastName ? "lastName-error" : undefined} {...register("lastName")} />
-          {errors.lastName ? (
-            <p id="lastName-error" className="mt-1 text-sm text-red-700" role="alert">
-              {errors.lastName.message}
-            </p>
-          ) : null}
-        </div>
-
-        <div>
-          <label htmlFor="email" className="text-sm font-semibold text-slate-800">
-            Email
-          </label>
-          <input id="email" type="email" className={fieldClass} aria-describedby={errors.email ? "email-error" : undefined} {...register("email")} />
-          {errors.email ? (
-            <p id="email-error" className="mt-1 text-sm text-red-700" role="alert">
-              {errors.email.message}
-            </p>
-          ) : null}
-        </div>
-
-        <div>
-          <label htmlFor="dob-day" className="text-sm font-semibold text-slate-800">
-            Date Of Birth
-          </label>
-          <div className="mt-1 grid grid-cols-3 gap-2" aria-describedby={errors.dateOfBirth ? "dob-error" : "dob-help"}>
-            <select
-              id="dob-day"
-              className="w-full rounded-lg border border-slate-400 bg-white/95 px-3 py-2 text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-200"
-              value={dobDay}
-              onChange={(event) => setDobDay(event.target.value)}
-            >
-              <option value="">Day</option>
-              {dayOptions.map((day) => (
-                <option key={day} value={day}>
-                  {day}
-                </option>
-              ))}
-            </select>
-            <select
-              id="dob-month"
-              aria-label="Month"
-              className="w-full rounded-lg border border-slate-400 bg-white/95 px-3 py-2 text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-200"
-              value={dobMonth}
-              onChange={(event) => setDobMonth(event.target.value)}
-            >
-              <option value="">Month</option>
-              {monthOptions.map((month) => (
-                <option key={month.value} value={month.value}>
-                  {month.label}
-                </option>
-              ))}
-            </select>
-            <select
-              id="dob-year"
-              aria-label="Year"
-              className="w-full rounded-lg border border-slate-400 bg-white/95 px-3 py-2 text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-200"
-              value={dobYear}
-              onChange={(event) => setDobYear(event.target.value)}
-            >
-              <option value="">Year</option>
-              {yearOptions.map((year) => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))}
-            </select>
+      <form className="mt-5 flex flex-1 flex-col justify-between" onSubmit={handleSubmit(onSubmit)} noValidate>
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div>
+            <label htmlFor="firstName" className="text-sm font-semibold text-slate-800">
+              First Name
+            </label>
+            <input id="firstName" className={fieldClass} aria-describedby={errors.firstName ? "firstName-error" : undefined} {...register("firstName")} />
+            {errors.firstName ? (
+              <p id="firstName-error" className="mt-1 text-sm text-red-700" role="alert">
+                {errors.firstName.message}
+              </p>
+            ) : null}
           </div>
-          <input type="hidden" {...register("dateOfBirth")} />
-          <p id="dob-help" className="mt-1 text-xs text-slate-700">
-            Select Day, Month, and Year.
-          </p>
-          {errors.dateOfBirth ? (
-            <p id="dob-error" className="mt-1 text-sm text-red-700" role="alert">
-              {errors.dateOfBirth.message}
+
+          <div>
+            <label htmlFor="lastName" className="text-sm font-semibold text-slate-800">
+              Last Name
+            </label>
+            <input id="lastName" className={fieldClass} aria-describedby={errors.lastName ? "lastName-error" : undefined} {...register("lastName")} />
+            {errors.lastName ? (
+              <p id="lastName-error" className="mt-1 text-sm text-red-700" role="alert">
+                {errors.lastName.message}
+              </p>
+            ) : null}
+          </div>
+
+          <div>
+            <label htmlFor="email" className="text-sm font-semibold text-slate-800">
+              Email
+            </label>
+            <input id="email" type="email" className={fieldClass} aria-describedby={errors.email ? "email-error" : undefined} {...register("email")} />
+            {errors.email ? (
+              <p id="email-error" className="mt-1 text-sm text-red-700" role="alert">
+                {errors.email.message}
+              </p>
+            ) : null}
+          </div>
+
+          <div>
+            <label htmlFor="dob-day" className="text-sm font-semibold text-slate-800">
+              Date Of Birth
+            </label>
+            <div className="mt-1 grid grid-cols-3 gap-2" aria-describedby={errors.dateOfBirth ? "dob-error" : "dob-help"}>
+              <select
+                id="dob-day"
+                className="w-full rounded-lg border border-slate-400 bg-white/95 px-3 py-2 text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                value={dobDay}
+                onChange={(event) => setDobDay(event.target.value)}
+              >
+                <option value="">Day</option>
+                {dayOptions.map((day) => (
+                  <option key={day} value={day}>
+                    {day}
+                  </option>
+                ))}
+              </select>
+              <select
+                id="dob-month"
+                aria-label="Month"
+                className="w-full rounded-lg border border-slate-400 bg-white/95 px-3 py-2 text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                value={dobMonth}
+                onChange={(event) => setDobMonth(event.target.value)}
+              >
+                <option value="">Month</option>
+                {monthOptions.map((month) => (
+                  <option key={month.value} value={month.value}>
+                    {month.label}
+                  </option>
+                ))}
+              </select>
+              <select
+                id="dob-year"
+                aria-label="Year"
+                className="w-full rounded-lg border border-slate-400 bg-white/95 px-3 py-2 text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-2 focus:ring-sky-200"
+                value={dobYear}
+                onChange={(event) => setDobYear(event.target.value)}
+              >
+                <option value="">Year</option>
+                {yearOptions.map((year) => (
+                  <option key={year} value={year}>
+                    {year}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <input type="hidden" {...register("dateOfBirth")} />
+            <p id="dob-help" className="mt-1 text-xs text-slate-700">
+              Select Day, Month, and Year.
+            </p>
+            {errors.dateOfBirth ? (
+              <p id="dob-error" className="mt-1 text-sm text-red-700" role="alert">
+                {errors.dateOfBirth.message}
+              </p>
+            ) : null}
+          </div>
+
+          <div>
+            <label htmlFor="phoneNumber" className="text-sm font-semibold text-slate-800">
+              Phone Number
+            </label>
+            <input id="phoneNumber" placeholder="+447911123456" className={fieldClass} aria-describedby={errors.phoneNumber ? "phone-error" : undefined} {...register("phoneNumber")} />
+            {errors.phoneNumber ? (
+              <p id="phone-error" className="mt-1 text-sm text-red-700" role="alert">
+                {errors.phoneNumber.message}
+              </p>
+            ) : null}
+          </div>
+
+          <div>
+            <label htmlFor="nationality" className="text-sm font-semibold text-slate-800">
+              Nationality (ISO code)
+            </label>
+            <input id="nationality" className={fieldClass} maxLength={2} aria-describedby={errors.nationality ? "nationality-error" : undefined} {...register("nationality")} />
+            {errors.nationality ? (
+              <p id="nationality-error" className="mt-1 text-sm text-red-700" role="alert">
+                {errors.nationality.message}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="md:col-span-2 lg:col-span-3">
+            <label htmlFor="addressLine1" className="text-sm font-semibold text-slate-800">
+              Address Line 1
+            </label>
+            <input id="addressLine1" className={fieldClass} aria-describedby={errors.addressLine1 ? "address-error" : undefined} {...register("addressLine1")} />
+            {errors.addressLine1 ? (
+              <p id="address-error" className="mt-1 text-sm text-red-700" role="alert">
+                {errors.addressLine1.message}
+              </p>
+            ) : null}
+          </div>
+
+          <div>
+            <label htmlFor="city" className="text-sm font-semibold text-slate-800">
+              City
+            </label>
+            <input id="city" className={fieldClass} aria-describedby={errors.city ? "city-error" : undefined} {...register("city")} />
+            {errors.city ? (
+              <p id="city-error" className="mt-1 text-sm text-red-700" role="alert">
+                {errors.city.message}
+              </p>
+            ) : null}
+          </div>
+
+          <div>
+            <label htmlFor="postcode" className="text-sm font-semibold text-slate-800">
+              UK Postcode
+            </label>
+            <input id="postcode" className={fieldClass} aria-describedby={errors.postcode ? "postcode-error" : undefined} {...register("postcode")} />
+            {errors.postcode ? (
+              <p id="postcode-error" className="mt-1 text-sm text-red-700" role="alert">
+                {errors.postcode.message}
+              </p>
+            ) : null}
+          </div>
+
+          {formError ? (
+            <p role="alert" className="md:col-span-2 lg:col-span-3 text-sm text-red-700" data-e2e="registration-error">
+              {formError}
             </p>
           ) : null}
         </div>
 
-        <div>
-          <label htmlFor="phoneNumber" className="text-sm font-semibold text-slate-800">
-            Phone Number
-          </label>
-          <input id="phoneNumber" placeholder="+447911123456" className={fieldClass} aria-describedby={errors.phoneNumber ? "phone-error" : undefined} {...register("phoneNumber")} />
-          {errors.phoneNumber ? (
-            <p id="phone-error" className="mt-1 text-sm text-red-700" role="alert">
-              {errors.phoneNumber.message}
-            </p>
-          ) : null}
-        </div>
-
-        <div>
-          <label htmlFor="nationality" className="text-sm font-semibold text-slate-800">
-            Nationality (ISO code)
-          </label>
-          <input id="nationality" className={fieldClass} maxLength={2} aria-describedby={errors.nationality ? "nationality-error" : undefined} {...register("nationality")} />
-          {errors.nationality ? (
-            <p id="nationality-error" className="mt-1 text-sm text-red-700" role="alert">
-              {errors.nationality.message}
-            </p>
-          ) : null}
-        </div>
-
-        <div className="md:col-span-2">
-          <label htmlFor="addressLine1" className="text-sm font-semibold text-slate-800">
-            Address Line 1
-          </label>
-          <input id="addressLine1" className={fieldClass} aria-describedby={errors.addressLine1 ? "address-error" : undefined} {...register("addressLine1")} />
-          {errors.addressLine1 ? (
-            <p id="address-error" className="mt-1 text-sm text-red-700" role="alert">
-              {errors.addressLine1.message}
-            </p>
-          ) : null}
-        </div>
-
-        <div>
-          <label htmlFor="city" className="text-sm font-semibold text-slate-800">
-            City
-          </label>
-          <input id="city" className={fieldClass} aria-describedby={errors.city ? "city-error" : undefined} {...register("city")} />
-          {errors.city ? (
-            <p id="city-error" className="mt-1 text-sm text-red-700" role="alert">
-              {errors.city.message}
-            </p>
-          ) : null}
-        </div>
-
-        <div>
-          <label htmlFor="postcode" className="text-sm font-semibold text-slate-800">
-            UK Postcode
-          </label>
-          <input id="postcode" className={fieldClass} aria-describedby={errors.postcode ? "postcode-error" : undefined} {...register("postcode")} />
-          {errors.postcode ? (
-            <p id="postcode-error" className="mt-1 text-sm text-red-700" role="alert">
-              {errors.postcode.message}
-            </p>
-          ) : null}
-        </div>
-
-        {formError ? (
-          <p role="alert" className="md:col-span-2 text-sm text-red-700" data-e2e="registration-error">
-            {formError}
-          </p>
-        ) : null}
-
-        <div className="md:col-span-2">
+        <div className="mt-6 pt-4 border-t border-slate-200">
           <button
             type="submit"
-            className="rounded bg-slate-900 px-4 py-2 text-white hover:bg-slate-700 disabled:opacity-60"
+            className="rounded bg-slate-900 px-6 py-2.5 text-white hover:bg-slate-700 disabled:opacity-60 font-medium"
             disabled={isSubmitting}
             data-e2e="registration-submit"
           >

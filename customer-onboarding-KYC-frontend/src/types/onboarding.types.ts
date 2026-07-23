@@ -9,6 +9,22 @@ export enum OnboardingStep {
   CONFIRMATION = "CONFIRMATION",
 }
 
+export const ONBOARDING_STEP_LABELS: Record<OnboardingStep, string> = {
+  [OnboardingStep.PERSONAL_DETAILS]: "Personal Details",
+  [OnboardingStep.DOCUMENT_UPLOAD]: "Document Upload",
+  [OnboardingStep.KYC_VERIFICATION]: "KYC Verification",
+  [OnboardingStep.REVIEW]: "Review",
+  [OnboardingStep.CONFIRMATION]: "Confirmation",
+};
+
+export const ONBOARDING_STEP_ENTRIES: Array<{ step: OnboardingStep; label: string }> = [
+  { step: OnboardingStep.PERSONAL_DETAILS, label: ONBOARDING_STEP_LABELS[OnboardingStep.PERSONAL_DETAILS] },
+  { step: OnboardingStep.DOCUMENT_UPLOAD, label: ONBOARDING_STEP_LABELS[OnboardingStep.DOCUMENT_UPLOAD] },
+  { step: OnboardingStep.KYC_VERIFICATION, label: ONBOARDING_STEP_LABELS[OnboardingStep.KYC_VERIFICATION] },
+  { step: OnboardingStep.REVIEW, label: ONBOARDING_STEP_LABELS[OnboardingStep.REVIEW] },
+  { step: OnboardingStep.CONFIRMATION, label: ONBOARDING_STEP_LABELS[OnboardingStep.CONFIRMATION] },
+];
+
 export enum KycStatus {
   KYC_IN_PROGRESS = "KYC_InProgress",
   PASS = "PASS",

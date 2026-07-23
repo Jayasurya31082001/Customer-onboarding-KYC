@@ -166,22 +166,11 @@ export const resetOnboardingSessionState = (): void => {
 export const resolveOnboardingRouteForEmail = (email: string): string => {
   const session = getOnboardingSessionByEmail(email);
 
-  if (!session) {
-    return "/onboarding";
+  if (session?.currentStep === OnboardingStep.CONFIRMATION) {
+    return "/onboarding/confirmation";
   }
 
-  switch (session.currentStep) {
-    case OnboardingStep.DOCUMENT_UPLOAD:
-      return "/onboarding";
-    case OnboardingStep.KYC_VERIFICATION:
-      return "/onboarding";
-    case OnboardingStep.REVIEW:
-      return "/onboarding";
-    case OnboardingStep.CONFIRMATION:
-      return "/onboarding/confirmation";
-    default:
-      return "/onboarding";
-  }
+  return "/onboarding";
 };
 
 export const hydrateOnboardingStateForEmail = (email: string): OnboardingState | null => {

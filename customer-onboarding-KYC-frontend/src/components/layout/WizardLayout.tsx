@@ -2,15 +2,7 @@ import { useEffect, useRef } from "react";
 import { Outlet } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { useOnboarding } from "../../hooks/useOnboarding";
-import { OnboardingStep } from "../../types/onboarding.types";
-
-const stepTitleByStep: Record<OnboardingStep, string> = {
-  [OnboardingStep.PERSONAL_DETAILS]: "Personal Details",
-  [OnboardingStep.DOCUMENT_UPLOAD]: "Document Upload",
-  [OnboardingStep.KYC_VERIFICATION]: "KYC Verification",
-  [OnboardingStep.REVIEW]: "Review",
-  [OnboardingStep.CONFIRMATION]: "Confirmation",
-};
+import { ONBOARDING_STEP_LABELS } from "../../types/onboarding.types";
 
 export const WizardLayout = () => {
   const headingRef = useRef<HTMLHeadingElement>(null);
@@ -19,14 +11,14 @@ export const WizardLayout = () => {
     state: { currentStep },
   } = useOnboarding();
 
-  const currentStepTitle = stepTitleByStep[currentStep];
+  const currentStepTitle = ONBOARDING_STEP_LABELS[currentStep];
 
   useEffect(() => {
     headingRef.current?.focus();
   }, [currentStep]);
 
   return (
-    <section className="flex h-full min-h-full flex-col gap-6" data-e2e="onboarding-wizard">
+    <section className="flex flex-1 flex-col gap-6 h-full min-h-full" data-e2e="onboarding-wizard">
       <header className="space-y-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
         <h1 ref={headingRef} tabIndex={-1} className="text-2xl font-bold text-slate-900 focus:outline-none">
           Multi-step Customer Onboarding
@@ -44,7 +36,7 @@ export const WizardLayout = () => {
         </p>
       </header>
 
-      <div className="flex-1 rounded-xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6">
+      <div className="flex flex-1 flex-col rounded-xl border border-slate-200 bg-white p-4 sm:p-6 md:p-8 shadow-sm">
         <Outlet />
       </div>
     </section>

@@ -1,4 +1,4 @@
-import { OnboardingStatus } from "../types/customer.types";
+import { OnboardingStatus, type CustomerResponse } from "../types/customer.types";
 import { accountHttpClient, customerHttpClient, riskHttpClient } from "./httpClient";
 import { customerService } from "./customerService";
 import { documentService } from "./documentService";
@@ -11,7 +11,15 @@ export type ComplianceDecision = "APPROVE" | "REJECT" | "REFER";
 
 export interface ComplianceApplication {
   customerId: string;
+  firstName?: string;
+  lastName?: string;
   email: string;
+  dateOfBirth?: string;
+  phoneNumber?: string;
+  nationality?: string;
+  addressLine1?: string;
+  city?: string;
+  postcode?: string;
   assessedAt: string;
   riskScore: number | null;
   disposition: "AUTO_APPROVE" | "MANUAL_REVIEW" | "AUTO_REJECT";
@@ -23,19 +31,27 @@ export interface ComplianceDecisionRequest {
   customerId: string;
   customerEmail?: string;
   decision: ComplianceDecision;
-  reason: string;
 }
 
 const mapCustomersToApplications = async (
-  customers: Array<{ customerId: string; email: string; createdAt?: string }>,
+  customers: CustomerResponse[],
 ): Promise<ComplianceApplication[]> => {
   return Promise.all(customers.map(async (customer) => {
     const backendDocumentId = await documentService.getLatestDocumentIdByCustomer(customer.customerId);
+    const session = getOnboardingSessionByCustomerId(customer.customerId);
 
     return {
       documentId: backendDocumentId,
       customerId: customer.customerId,
-      email: customer.email,
+      firstName: customer.firstName ?? session?.personalDetails?.firstName,
+      lastName: customer.lastName ?? session?.personalDetails?.lastName,
+      email: customer.email ?? session?.personalDetails?.email,
+      dateOfBirth: customer.dateOfBirth ?? session?.personalDetails?.dateOfBirth,
+      phoneNumber: customer.phoneNumber ?? session?.personalDetails?.phoneNumber,
+      nationality: customer.nationality ?? session?.personalDetails?.nationality,
+      addressLine1: customer.addressLine1 ?? session?.personalDetails?.addressLine1,
+      city: customer.city ?? session?.personalDetails?.city,
+      postcode: customer.postcode ?? session?.personalDetails?.postcode,
       assessedAt: customer.createdAt ?? new Date().toISOString(),
       riskScore: null,
       disposition: "MANUAL_REVIEW",
